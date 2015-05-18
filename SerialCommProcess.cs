@@ -303,7 +303,7 @@ namespace BLEMotionInstaller
                     connectedDict[key] = BLEState.Connected;
                     connectedBLEKey = key;
                 }
-                serialCommProcessMessage(this, "Connected");
+                serialCommProcessMessage(this, "Connected [" + connectedBLEKey.ToString() + "]");
                 bleConnectState = BLEState.Connected;
             }
             // 再度接続を試みる
@@ -372,7 +372,7 @@ namespace BLEMotionInstaller
                         Thread.Sleep(1);
 
                     Thread.Sleep(DELAY_INTERVAL);
-                    serialCommProcessMessage(this, "headler written.");
+                    serialCommProcessMessage(this, "header written.");
 
                     Thread.Sleep(50);
                     /*-- frame --*/
@@ -411,7 +411,7 @@ namespace BLEMotionInstaller
 
                         Thread.Sleep(DELAY_INTERVAL);
 
-                        serialCommProcessMessage(this, "frame written. [" + ((index + 1) * 100).ToString() + "/" + (mfxCommandArray.Length - 30).ToString() + "]");
+                        serialCommProcessMessage(this, "frame written. [" + (index + 1).ToString() + "/" + ((mfxCommandArray.Length - 30) / 100).ToString() + "]");
                         Thread.Sleep(50);
                     }
                     serialCommProcessMessage(this, "【" + sendMfxCommand.Name + "】send Complete. ...");
