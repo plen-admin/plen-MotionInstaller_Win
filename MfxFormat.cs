@@ -75,7 +75,7 @@ namespace PLEN.MFX
                     if (tagMotion.Extra.Param.Count != 2)
                         return false;
                     // ParamリストをIDの昇順に並び替え
-                    tagMotion.Extra.Param.Sort((o1, o2) => o1.ID.CompareTo(o2.ID));
+                    tagMotion.Extra.Param.Sort((o1, o2) => (Int32.Parse(o1.ID)).CompareTo(Int32.Parse(o2.ID)));
                     // コマンドを追加
                     strConvertedMfx += byte.Parse(tagMotion.Extra.Function).ToString("x2");
                     strConvertedMfx += byte.Parse(tagMotion.Extra.Param[0].Param).ToString("x2");
@@ -90,14 +90,14 @@ namespace PLEN.MFX
 
                     /*----- システムコマンド「frame」 -----*/
                     // FrameリストをIDの昇順に並び替え
-                    tagMotion.Frame.Sort((o1, o2) => o1.ID.CompareTo(o2.ID));
+                    tagMotion.Frame.Sort((o1, o2) => (Int32.Parse(o1.ID)).CompareTo(Int32.Parse(o2.ID)));
                     strConvertedMfxForDisplay += "[frame : ";
                     foreach (TagFrameModel tagFrame in tagMotion.Frame)
                     {
                         strConvertedMfx += short.Parse(tagFrame.Time).ToString("x4");
                         strConvertedMfxForDisplay += " " + short.Parse(tagFrame.Time).ToString("x4");
                         // JointリストをIDの昇順に並べ替え
-                        tagFrame.Joint.Sort((o1, o2) => o1.ID.CompareTo(o2.ID));
+                        tagFrame.Joint.Sort((o1, o2) => (Int32.Parse(o1.ID)).CompareTo(Int32.Parse(o2.ID)));
                         foreach (TagJointModel tagJoint in tagFrame.Joint)
                         {
                             strConvertedMfx += short.Parse(tagJoint.Joint).ToString("x4");
