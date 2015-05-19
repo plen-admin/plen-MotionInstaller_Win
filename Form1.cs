@@ -15,6 +15,8 @@ namespace BLEMotionInstaller
 {
     public partial class Form1 : Form
     {
+        public Dictionary<string, InMainThreadBLEConnectingHandler> bleConnectingHandlerDict = new Dictionary<string, InMainThreadBLEConnectingHandler>();
+
         /// <summary>
         /// 通信メソッドハッシュテーブル（キー：COMポート名)
         /// </summary>
@@ -36,6 +38,8 @@ namespace BLEMotionInstaller
         /// 送信完了PLEN台数
         /// </summary>
         private int commandSendedPLENCnt;
+        private Thread bleConnectingThread;
+
 
         public Form1()
         {
@@ -67,6 +71,26 @@ namespace BLEMotionInstaller
                 portDict.Add("0", "Error " + ex.Message);
             }
         }
+
+        private void bleConnectingThreadFunc()
+        {
+            try
+            {
+                while (true)
+                {
+                    if (bleConnectingHandlerDict.Count > 0)
+                    {
+                        string port = bleConnectingHandlerDict.Keys.ToList()[0];
+                        bleConnectingHandlerDict[port].Invoke(portInstanceDict[port]);
+                        bleConnectingHandlerDict.Remove(port);
+                    }
+                    else
+                        Thread.Sleep(1);
+                }
+            }
+            catch (Exception) { }
+        }
+
         /***** モーションファイル読み込みボタン投下メソッド（イベント呼び出し） *****/
         private void button3_Click(object sender, EventArgs e)
         {
@@ -177,7 +201,7 @@ namespace BLEMotionInstaller
                     string portName = portDict[portDictKey];
                     // シリアル通信スレッド用インスタンス作成
                     // イベント登録
-                    portInstanceDict.Add(portName, new SerialCommProcess(portName, sendMfxCommandList, checkBox1.Checked));
+                    portInstanceDict.Add(portName, new SerialCommProcess(this, portName, sendMfxCommandList, checkBox1.Checked));
                     portInstanceDict[portName].serialCommProcessMessage += new SerialCommProcessMessageHandler(serialCommEventProcessMessage);
                     portInstanceDict[portName].serialCommProcessFinished += new SerialCommProcessFinishedHandler(serialCommEventProcessFinished);
                     portInstanceDict[portName].serialCommProcessBLEConncted += new SerialCommProcessBLEConnectedHander(serialCommProcessEventBLEConncted);
@@ -186,6 +210,9 @@ namespace BLEMotionInstaller
                     threadDict.Add(portName, new Thread(portInstanceDict[portName].start));
                     threadDict[portName].Name = "SerialCommThread_" + portName;
                     threadDict[portName].Start();
+
+                    bleConnectingThread = new Thread(bleConnectingThreadFunc);
+                    bleConnectingThread.Start();
                 }
                 toolStripStatusLabel2.Text = "コマンド送信完了PLEN数：0";
                 commandSendedPLENCnt = 0;
@@ -280,7 +307,12 @@ namespace BLEMotionInstaller
             foreach (string key in threadDict.Keys)
             {
                 threadDict[key].Abort();
+                threadDict[key].Join();
             }
+
+            bleConnectingThread.Abort();
+            bleConnectingThread.Join();
+
             threadDict.Clear();
             MessageBox.Show("全通信を終了しました。", "通信を終了しました", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             textBox1.AppendText("***** All Communication Stopped *****" + System.Environment.NewLine);
@@ -295,7 +327,11 @@ namespace BLEMotionInstaller
             foreach (string key in threadDict.Keys)
             {
                 threadDict[key].Abort();
+                threadDict[key].Join();
             }
+
+            bleConnectingThread.Abort();
+            bleConnectingThread.Join();
         }
 
 
