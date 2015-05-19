@@ -14,8 +14,8 @@ using System.Management;
 namespace BLEMotionInstaller
 {
     public partial class Form1 : Form
-    {
-        public Dictionary<string, InMainThreadBLEConnectingHandler> bleConnectingHandlerDict = new Dictionary<string, InMainThreadBLEConnectingHandler>();
+    {  
+        public List<string> bleConnectingRequestPortList = new List<string>();
 
         /// <summary>
         /// 通信メソッドハッシュテーブル（キー：COMポート名)
@@ -78,11 +78,10 @@ namespace BLEMotionInstaller
             {
                 while (true)
                 {
-                    if (bleConnectingHandlerDict.Count > 0)
+                    if (bleConnectingRequestPortList.Count > 0)
                     {
-                        string port = bleConnectingHandlerDict.Keys.ToList()[0];
-                        bleConnectingHandlerDict[port].Invoke(portInstanceDict[port]);
-                        bleConnectingHandlerDict.Remove(port);
+                        portInstanceDict[bleConnectingRequestPortList[0]].bleConnect();
+                        bleConnectingRequestPortList.RemoveAt(0);
                     }
                     else
                         Thread.Sleep(1);

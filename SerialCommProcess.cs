@@ -11,7 +11,6 @@ namespace BLEMotionInstaller
     public delegate void SerialCommProcessFinishedHandler(SerialCommProcess sender, SerialCommProcessFinishedEventArgs args);
     public delegate void SerialCommProcessBLEConnectedHander(SerialCommProcess sender);
     public delegate void SeiralCommProcessMfxCommandSendedHandler(SerialCommProcess sender);
-    public delegate void InMainThreadBLEConnectingHandler(SerialCommProcess sender);
 
     /// <summary>
     /// シリアル通信メソッド終了イベント引数クラス
@@ -188,15 +187,15 @@ namespace BLEMotionInstaller
                 isAttributeWrited = true;
         }
 
-        public void bleConnect(SerialCommProcess sender)
+        public void bleConnect()
         {
             /*----- 半二重通信ここから -----*/
-            sender.bgLib.SendCommand(serialPort, sender.bgLib.BLECommandGAPEndProcedure());
-            while (sender.bgLib.IsBusy() == true)
+            bgLib.SendCommand(serialPort, bgLib.BLECommandGAPEndProcedure());
+            while (bgLib.IsBusy() == true)
                 Thread.Sleep(1);
 
             Thread.Sleep(10);
-            sender.bgLib.SendCommand(serialPort, sender.bgLib.BLECommandConnectionDisconnect(0));
+            bgLib.SendCommand(serialPort, bgLib.BLECommandConnectionDisconnect(0));
             while (bgLib.IsBusy() == true)
                 Thread.Sleep(1);
 
@@ -204,7 +203,7 @@ namespace BLEMotionInstaller
             Thread.Sleep(10);
             serialCommProcessMessage(this, "PLEN2 searching...");
             bleConnectState = BLEState.NotConnected;
-            sender.bgLib.SendCommand(serialPort, sender.bgLib.BLECommandGAPDiscover(1));
+            bgLib.SendCommand(serialPort, bgLib.BLECommandGAPDiscover(1));
             while (bleConnectState != BLEState.Connected)
                 Thread.Sleep(1);
         }
@@ -350,10 +349,10 @@ namespace BLEMotionInstaller
             sendedMfxCommandCnt = 0;    // カウントリセット
 
             bleConnectState = BLEState.NotConnected;
-            // PLEN2との接続処理をBLE接続用スレッド上（シングルタスク）上で行うため，テーブルにもろもろをセット
-            // ※BLE接続スレッドはbleConnectingHandlerDictにアイテムが追加されると自動的にテーブルの1番目から接続処理を行う
+            // PLEN2との接続処理をBLE接続用スレッド上（シングルタスク）上で行うため，接続要求リストにセット
+            // ※BLE接続スレッドはbleConnectingRequestPortListにアイテムが追加されると自動的にテーブルの1番目から接続処理を行う
             // 
-            formSender.bleConnectingHandlerDict.Add(PortName, new InMainThreadBLEConnectingHandler(bleConnect));
+            formSender.bleConnectingRequestPortList.Add(PortName);
             serialCommProcessMessage(this, "BLE Connecting Thread Waiting...");
             while (bleConnectState != BLEState.Connected)
                 Thread.Sleep(1);
