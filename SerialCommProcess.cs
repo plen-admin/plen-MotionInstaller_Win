@@ -138,6 +138,9 @@ namespace BLEMotionInstaller
         /// 
         /// </summary>
         private bool isAttributeWrited;
+        /// <summary>
+        /// 親インスタンス（自インスタンスの作成元）
+        /// </summary>
         private Form1 formSender;
 
 
@@ -170,7 +173,7 @@ namespace BLEMotionInstaller
             IsContinuationMode = isContinuationMode;
 
             serialPort.Open();
-            serialCommProcessMessage(this, "Opened");
+            //serialCommProcessMessage(this, "Opened");
         }
 
         /// <summary>
@@ -186,7 +189,10 @@ namespace BLEMotionInstaller
             if (e.result == 0)
                 isAttributeWrited = true;
         }
-
+        /// <summary>
+        /// PLEN2接続メソッド（注：同時に複数のドングルがPLEN2に接続しないよう，本メソッドはシングルタスクで動作させることを推奨！）
+        /// （現在Form1のbleConnectingThreadのみが接続処理を行うようにしている．）
+        /// </summary>
         public void bleConnect()
         {
             /*----- 半二重通信ここから -----*/
@@ -224,15 +230,24 @@ namespace BLEMotionInstaller
                     Thread.Sleep(500);
                 } while (IsContinuationMode == true);
             }
-            catch (Exception) { throw; }
+            catch (Exception) {  }
             finally
             {
                 // クライアントと接続を切断
                 if (serialPort.IsOpen == true)
                 {
+                    int i = 0;
+                    const int TIMEOUT = 50;
+
                     bgLib.SendCommand(serialPort, bgLib.BLECommandConnectionDisconnect(0));
-                    while (bgLib.IsBusy() == true)
+                    for (i = 0; i < TIMEOUT && bgLib.IsBusy() == true; i++)
+                    {
                         Thread.Sleep(1);
+                    }
+                    if (i >= TIMEOUT)
+                    {
+                        serialCommProcessMessage(this, "PLEN2との接続が解除できませんでした．BLEドングルを抜き差ししてください．");
+                    }
                 }
                 // 自動継続モードでなければ今回接続したクライアントのキーをリストから削除
                 if (IsContinuationMode == false && connectedDict.Keys.Contains(connectedBLEKey))
@@ -349,10 +364,10 @@ namespace BLEMotionInstaller
             sendedMfxCommandCnt = 0;    // カウントリセット
 
             bleConnectState = BLEState.NotConnected;
-            // PLEN2との接続処理をBLE接続用スレッド上（シングルタスク）上で行うため，接続要求リストにセット
-            // ※BLE接続スレッドはbleConnectingRequestPortListにアイテムが追加されると自動的にテーブルの1番目から接続処理を行う
-            // 
-            formSender.bleConnectingRequestPortList.Add(PortName);
+            // PLEN2との接続処理をPLEN2接続用スレッド上（シングルタスク）上で行うため，接続要求リストにセット
+            // ※PLEN2接続スレッドはbleConnectingRequestPortListにアイテムが追加されると自動的にテーブルの1番目から接続処理を行う
+            if(!formSender.bleConnectingRequestPortList.Contains(PortName))
+                formSender.bleConnectingRequestPortList.Add(PortName);
             serialCommProcessMessage(this, "BLE Connecting Thread Waiting...");
             while (bleConnectState != BLEState.Connected)
                 Thread.Sleep(1);
@@ -454,7 +469,6 @@ namespace BLEMotionInstaller
                 bgLib.SendCommand(serialPort, bgLib.BLECommandConnectionDisconnect(0));
                 while (bgLib.IsBusy() == true)
                     Thread.Sleep(1);
-                bleConnectState = BLEState.NotConnected;
             }
         }
 
