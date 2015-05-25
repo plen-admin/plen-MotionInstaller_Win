@@ -147,8 +147,9 @@ namespace BLEMotionInstaller
         /// <summary>
         /// コンストラクタ
         /// </summary>
+        /// <param name="sender">インスタンス作成元Form</param>
         /// <param name="portName">シリアルポート名</param>
-        /// <param name="data">送信データ</param>
+        /// <param name="mfxCommandList">送信モーションファイルリスト</param>
         /// <param name="isContinuationMode">自動継続モードにするかしないか</param>
         public SerialCommProcess(object sender, string portName, List<PLEN.MFX.BLEMfxCommand> mfxCommandList, bool isContinuationMode)
         {
