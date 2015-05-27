@@ -14,7 +14,13 @@ using System.Management;
 namespace BLEMotionInstaller
 {
     public partial class Form1 : Form
-    {
+    {  
+        /// <summary>
+        /// PLEN2接続要求ポート名リスト
+        /// PLEN2と接続したいBLEドングルは，このリストにポート名を追加すると，PLEN2接続用スレッドで接続処理を行ってくれる．
+        /// </summary>
+        public List<string> bleConnectingRequestPortList = new List<string>();
+
         /// <summary>
         /// 通信メソッドハッシュテーブル（キー：COMポート名)
         /// </summary>
@@ -36,6 +42,11 @@ namespace BLEMotionInstaller
         /// 送信完了PLEN台数
         /// </summary>
         private int commandSendedPLENCnt;
+        /// <summary>
+        /// PLEN2接続スレッド
+        /// </summary>
+        private Thread bleConnectingThread;
+
 
         public Form1()
         {
@@ -67,6 +78,34 @@ namespace BLEMotionInstaller
                 portDict.Add("0", "Error " + ex.Message);
             }
         }
+        /***** PLEN2接続スレッドメソッド（bleConnectingThread上で動作） *****/
+        private void bleConnectingThreadFunc()
+        {
+            try
+            {
+                while (true)
+                {
+                    // PLEN2に接続したいBLEドングルはbleConnectingRequestPortListにポート名を追加している
+                    if (bleConnectingRequestPortList.Count > 0)
+                    {
+                        // ログ用テキストボックス更新
+                        this.Invoke((MethodInvoker)delegate
+                        {
+                            textBox1.AppendText("Connection Thread     >> [" + bleConnectingRequestPortList[0] + "] Start PLEN2-Connection." + System.Environment.NewLine);
+                        });
+                        // 接続要求をしているCOMポートに対して，PLEN2接続処理を行う
+                        portInstanceDict[bleConnectingRequestPortList[0]].bleConnect();
+                        // 接続
+                        bleConnectingRequestPortList.RemoveAt(0);
+                    }
+                    else
+                        Thread.Sleep(1);
+                 }
+
+            }
+            catch (Exception) { }
+        }
+
         /***** モーションファイル読み込みボタン投下メソッド（イベント呼び出し） *****/
         private void button3_Click(object sender, EventArgs e)
         {
@@ -169,15 +208,18 @@ namespace BLEMotionInstaller
                         threadDict[key].Abort();
                     }
                 }
+                // 各リスト，テーブルをリセット
                 threadDict.Clear();
                 SerialCommProcess.connectedDict.Clear();
+                bleConnectingRequestPortList.Clear();
+
                 // 選択されているポート名を用いてシリアル通信スレッドを作成．実行．
                 foreach (string portDictKey in listBox1.SelectedItems)
                 {
                     string portName = portDict[portDictKey];
                     // シリアル通信スレッド用インスタンス作成
                     // イベント登録
-                    portInstanceDict.Add(portName, new SerialCommProcess(portName, sendMfxCommandList, checkBox1.Checked));
+                    portInstanceDict.Add(portName, new SerialCommProcess(this, portName, sendMfxCommandList, checkBox1.Checked));
                     portInstanceDict[portName].serialCommProcessMessage += new SerialCommProcessMessageHandler(serialCommEventProcessMessage);
                     portInstanceDict[portName].serialCommProcessFinished += new SerialCommProcessFinishedHandler(serialCommEventProcessFinished);
                     portInstanceDict[portName].serialCommProcessBLEConncted += new SerialCommProcessBLEConnectedHander(serialCommProcessEventBLEConncted);
@@ -187,10 +229,16 @@ namespace BLEMotionInstaller
                     threadDict[portName].Name = "SerialCommThread_" + portName;
                     threadDict[portName].Start();
                 }
+                // PLEN2接続スレッドを起動
+                bleConnectingThread = new Thread(bleConnectingThreadFunc);
+                bleConnectingThread.Name = "BLEConnectingThread";
+                bleConnectingThread.Start();
+
                 toolStripStatusLabel2.Text = "コマンド送信完了PLEN数：0";
                 commandSendedPLENCnt = 0;
                 button1.Enabled = false;
                 button2.Enabled = true;
+                checkBox1.Enabled = false;
             }
         }
         /***** モーションデータ送信完了メソッド（イベント呼び出し） *****/
@@ -214,7 +262,7 @@ namespace BLEMotionInstaller
             foreach (string key in sortedPortInstanceDictKeys)
             {
                 // PLENと接続が完了してるポートのみラベル
-                if (portInstanceDict[key].BLEConnectState == BLEState.Connected)
+                if (portInstanceDict[key].BLEConnectState == BLEState.Connected || portInstanceDict[key].BLEConnectState == BLEState.SendCompleted)
 
                     toolStripStatusLabel1.Text += "[ " + portInstanceDict[key].PortName + "   " + portInstanceDict[key].sendedMfxCommandCnt.ToString() + " / " + sendMfxCommandList.Count + " ]    ";
             }
@@ -248,6 +296,12 @@ namespace BLEMotionInstaller
                     {
                         button1.Enabled = true;
                         button2.Enabled = false;
+                        checkBox1.Enabled = true;
+                        if (bleConnectingThread != null)                    
+                        {
+                            bleConnectingThread.Abort();
+                           bleConnectingThread.Join();
+                        }
                         textBox1.AppendText(System.Environment.NewLine + "***** すべてのモーションデータの送信が完了しました。*****" + System.Environment.NewLine + System.Environment.NewLine);
                     }
                 });
@@ -280,13 +334,19 @@ namespace BLEMotionInstaller
             foreach (string key in threadDict.Keys)
             {
                 threadDict[key].Abort();
+                threadDict[key].Join();
             }
+
+            bleConnectingThread.Abort();
+            bleConnectingThread.Join();
+
             threadDict.Clear();
             MessageBox.Show("全通信を終了しました。", "通信を終了しました", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             textBox1.AppendText("***** All Communication Stopped *****" + System.Environment.NewLine);
 
             button1.Enabled = true;
             button2.Enabled = false;
+            checkBox1.Enabled = true;
         }
         /****** フォームが閉じられるときに呼ばれるメソッド（イベント呼び出し） *****/
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
@@ -294,10 +354,18 @@ namespace BLEMotionInstaller
             // すべての通信スレッドに停止命令を送信
             foreach (string key in threadDict.Keys)
             {
-                threadDict[key].Abort();
+                if (threadDict[key] != null)
+                {
+                    threadDict[key].Abort();
+                    threadDict[key].Join();
+                }
+            }
+            if (bleConnectingThread != null)
+            {
+                bleConnectingThread.Abort();
+                bleConnectingThread.Join();
             }
         }
-
 
     }
 }
