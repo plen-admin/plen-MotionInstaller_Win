@@ -97,8 +97,6 @@ namespace BLEMotionInstaller
         /// 送信完了モーションファイル数
         /// </summary>
         public int sendedMfxCommandCnt;
-
-        public readonly bool IsContinuationMode;
         /// <summary>
         /// モーションデータ送信間隔（単位：[ms]）
         /// </summary>
@@ -151,7 +149,7 @@ namespace BLEMotionInstaller
         /// <param name="portName">シリアルポート名</param>
         /// <param name="mfxCommandList">送信モーションファイルリスト</param>
         /// <param name="isContinuationMode">自動継続モードにするかしないか</param>
-        public SerialCommProcess(object sender, string portName, List<PLEN.MFX.BLEMfxCommand> mfxCommandList, bool isContinuationMode)
+        public SerialCommProcess(object sender, string portName, List<PLEN.MFX.BLEMfxCommand> mfxCommandList)
         {
             formSender = (Form1)sender;
 
@@ -171,7 +169,6 @@ namespace BLEMotionInstaller
             bgLib.BLEEventGAPScanResponse += new Bluegiga.BLE.Events.GAP.ScanResponseEventHandler(bgLib_BLEEventGAPScanResponse);
             bgLib.BLEEventConnectionStatus += new Bluegiga.BLE.Events.Connection.StatusEventHandler(bgLib_BLEEventConnectionStatus);
             bgLib.BLEEventATTClientProcedureCompleted += new Bluegiga.BLE.Events.ATTClient.ProcedureCompletedEventHandler(bgLib_BLEEventATTClientProcedureCompleted);
-            IsContinuationMode = isContinuationMode;
 
             serialPort.Open();
             //serialCommProcessMessage(this, "Opened");
@@ -224,12 +221,7 @@ namespace BLEMotionInstaller
             // 　自身が破棄される前に必ずシリアルポートを閉じる
             try
             {
-                // 親スレッドから破棄（終了ボタン投下など）されるまでずっと続ける（自動継続モードのみ）
-                do
-                {
-                    halfDuplexComm();
-                    Thread.Sleep(500);
-                } while (IsContinuationMode == true);
+             halfDuplexComm();
             }
             catch (Exception) {  }
             finally
@@ -250,8 +242,8 @@ namespace BLEMotionInstaller
                         serialCommProcessMessage(this, "PLEN2との接続が解除できませんでした．BLEドングルを抜き差ししてください．");
                     }
                 }
-                // 自動継続モードでなければ今回接続したクライアントのキーをリストから削除
-                if (IsContinuationMode == false && connectedDict.Keys.Contains(connectedBLEKey))
+                // 今回接続したクライアントのキーをリストから削除
+                if (connectedDict.Keys.Contains(connectedBLEKey))
                     connectedDict.Remove(connectedBLEKey);
 
                 serialPort.Close();
@@ -291,7 +283,6 @@ namespace BLEMotionInstaller
 
                 // CAUTION!: 以下は横着した実装。本来は上記の手順を踏むべき。
                 // PLEN2からのアドバタイズなので、接続を試みる
-
                 Int64 key = 0;
                 // キー作成
                 for (int index = 0; index < 6; index++)

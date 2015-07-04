@@ -53,7 +53,9 @@ namespace BLEMotionInstaller
             InitializeComponent();
         }
 
-        /***** フォームロード完了メソッド（イベント呼び出し） *****/
+        /// <summary>
+        /// フォームロード完了メソッド（イベント呼び出し）
+        /// </summary>
         private void Form1_Load(object sender, EventArgs e)
         {
             try
@@ -78,7 +80,9 @@ namespace BLEMotionInstaller
                 portDict.Add("0", "Error " + ex.Message);
             }
         }
-        /***** PLEN2接続スレッドメソッド（bleConnectingThread上で動作） *****/
+        /// <summary>
+        /// PLEN2接続スレッドメソッド（bleConnectingThread上で動作）
+        /// </summary>
         private void bleConnectingThreadFunc()
         {
             try
@@ -106,7 +110,9 @@ namespace BLEMotionInstaller
             catch (Exception) { }
         }
 
-        /***** モーションファイル読み込みボタン投下メソッド（イベント呼び出し） *****/
+        /// <summary>
+        /// モーションファイル読み込みボタン投下メソッド（イベント呼び出し）
+        /// </summary>
         private void button3_Click(object sender, EventArgs e)
         {
             sendMfxCommandList.Clear();
@@ -182,7 +188,9 @@ namespace BLEMotionInstaller
             }
         }
 
-        /***** 通信開始ボタン投下メソッド（イベント呼び出し） *****/
+        /// <summary>
+        /// 通信開始ボタン投下メソッド（イベント呼び出し）
+        /// </summary>
         private void button1_Click(object sender, EventArgs e)
         {
             // 一つ以上のアイテムがlistboxで選択されている時，処理を実行
@@ -219,7 +227,7 @@ namespace BLEMotionInstaller
                     string portName = portDict[portDictKey];
                     // シリアル通信スレッド用インスタンス作成
                     // イベント登録
-                    portInstanceDict.Add(portName, new SerialCommProcess(this, portName, sendMfxCommandList, checkBox1.Checked));
+                    portInstanceDict.Add(portName, new SerialCommProcess(this, portName, sendMfxCommandList));
                     portInstanceDict[portName].serialCommProcessMessage += new SerialCommProcessMessageHandler(serialCommEventProcessMessage);
                     portInstanceDict[portName].serialCommProcessFinished += new SerialCommProcessFinishedHandler(serialCommEventProcessFinished);
                     portInstanceDict[portName].serialCommProcessBLEConncted += new SerialCommProcessBLEConnectedHander(serialCommProcessEventBLEConncted);
@@ -238,21 +246,28 @@ namespace BLEMotionInstaller
                 commandSendedPLENCnt = 0;
                 button1.Enabled = false;
                 button2.Enabled = true;
-                checkBox1.Enabled = false;
             }
         }
-        /***** モーションデータ送信完了メソッド（イベント呼び出し） *****/
+        /// <summary>
+        /// モーションデータ送信完了メソッド（イベント呼び出し）
+        /// </summary>
         void serialCommProcessEventMfxCommandSended(SerialCommProcess sender)
         {
             // 進捗度を示すラベルの更新
             ThreadSafeDelegate(() => toolStripStatusLabel1Update());
         }
-        /***** BLE接続完了メソッド（イベント呼び出し） *****/
+        
+        /// <summary>
+        /// BLE接続完了メソッド（イベント呼び出し）
+        /// </summary>
         void serialCommProcessEventBLEConncted(SerialCommProcess sender)
         {
             // 進捗度を示すラベルの更新
             ThreadSafeDelegate(() => toolStripStatusLabel1Update());
         }
+        /// <summary>
+        /// 進捗表示ラベルの更新メソッド
+        /// </summary>
         void toolStripStatusLabel1Update()
         {
             // COMポート名を昇順にソートしてからラベル文字をいじる
@@ -268,47 +283,46 @@ namespace BLEMotionInstaller
             }
         }
 
-        /***** 全モーションコマンド送信完了メソッド（イベント呼び出し） *****/
+        /// <summary>
+        /// 全モーションコマンド送信完了メソッド（イベント呼び出し）
+        /// </summary>
         void serialCommEventProcessFinished(object sender, SerialCommProcessFinishedEventArgs args)
         {
             // コマンド送信完了PLEN数更新．画面表示．
             commandSendedPLENCnt++;
             ThreadSafeDelegate(delegate
             {
-                textBox1.AppendText(" ***** [" + args.PortName + "] Finished *****" + System.Environment.NewLine);
+                //textBox1.AppendText(" ***** [" + args.PortName + "] Finished *****" + System.Environment.NewLine);
                 toolStripStatusLabel2.Text = "コマンド送信完了PLEN数：" + commandSendedPLENCnt.ToString();
             });
 
             // 通知元のスレッドを終了させ，テーブルから削除（ただし自動継続モードでないとき）
-            if (checkBox1.Checked == false)
+            ThreadSafeDelegate(delegate
             {
-
-                ThreadSafeDelegate(delegate
+                textBox1.AppendText(" ***** [" + args.PortName + "] Finished *****" + System.Environment.NewLine);
+                if (threadDict.Keys.Contains(args.PortName))
                 {
-                    textBox1.AppendText(" ***** [" + args.PortName + "] Finished *****" + System.Environment.NewLine);
-                    if (threadDict.Keys.Contains(args.PortName))
+                    threadDict[args.PortName].Abort();
+                    threadDict.Remove(args.PortName);
+                }
+                // すべてのスレッドが終了した時
+                if (threadDict.Values.Count <= 0)
+                {
+                    button1.Enabled = true;
+                    button2.Enabled = false;
+                    if (bleConnectingThread != null)                    
                     {
-                        threadDict[args.PortName].Abort();
-                        threadDict.Remove(args.PortName);
+                        bleConnectingThread.Abort();
+                        bleConnectingThread.Join();
                     }
-                    // すべてのスレッドが終了した時
-                    if (threadDict.Values.Count <= 0)
-                    {
-                        button1.Enabled = true;
-                        button2.Enabled = false;
-                        checkBox1.Enabled = true;
-                        if (bleConnectingThread != null)                    
-                        {
-                            bleConnectingThread.Abort();
-                           bleConnectingThread.Join();
-                        }
-                        textBox1.AppendText(System.Environment.NewLine + "***** すべてのモーションデータの送信が完了しました。*****" + System.Environment.NewLine + System.Environment.NewLine);
-                    }
-                });
-            }
+                    textBox1.AppendText(System.Environment.NewLine + "***** すべてのモーションデータの送信が完了しました。*****" + System.Environment.NewLine + System.Environment.NewLine);
+                }
+            });
         }
 
-        /***** シリアル通信スレッドからのメッセージ受信メソッド（イベント呼び出し） *****/
+        /// <summary>
+        /// シリアル通信スレッドからのメッセージ受信メソッド（イベント呼び出し）
+        /// </summary>
         private void serialCommEventProcessMessage(SerialCommProcess sender, string message)
         {
             if (textBox1.IsDisposed == false && textBox1.Disposing == false)
@@ -317,9 +331,12 @@ namespace BLEMotionInstaller
         }
 
 
-        /***** メソッドデリゲート呼び出しメソッド *****/
-        // ※ListBoxやTextboxなど，Formに関するオブジェクトはメインスレッド以外からの操作ができない．
-        // 　本メソッドはメインスレッド上で動かす必要があるメソッドをメインスレッドに委託する操作を行う．
+        /// <summary>
+        /// メソッドデリゲート呼び出しメソッド
+        /// Note...ListBoxやTextboxなど，Formに関するオブジェクトはメインスレッド以外からの操作ができない．
+        // 　      本メソッドはメインスレッド上で動かす必要があるメソッドをメインスレッドに委託する操作を行う．
+        /// </summary>
+        /// <param name="method"></param>
         public void ThreadSafeDelegate(MethodInvoker method)
         {
             if (InvokeRequired)
@@ -328,13 +345,16 @@ namespace BLEMotionInstaller
                 method.Invoke();
         }
 
-        /***** 全通信停止ボタン投下メソッド（イベント飛び出し） *****/
+        /*****  *****/
+        /// <summary>
+        /// 全通信停止ボタン投下メソッド（イベント飛び出し）
+        /// </summary>
         private void button2_Click(object sender, EventArgs e)
         {
             foreach (string key in threadDict.Keys)
             {
                 threadDict[key].Abort();
-                threadDict[key].Join();
+                threadDict[key].Join(1500);
             }
 
             bleConnectingThread.Abort();
@@ -346,9 +366,11 @@ namespace BLEMotionInstaller
 
             button1.Enabled = true;
             button2.Enabled = false;
-            checkBox1.Enabled = true;
         }
-        /****** フォームが閉じられるときに呼ばれるメソッド（イベント呼び出し） *****/
+
+        /// <summary>
+        /// フォームが閉じられるときに呼ばれるメソッド（イベント呼び出し）
+        /// </summary>
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             // すべての通信スレッドに停止命令を送信
@@ -357,13 +379,13 @@ namespace BLEMotionInstaller
                 if (threadDict[key] != null)
                 {
                     threadDict[key].Abort();
-                    threadDict[key].Join();
+                    threadDict[key].Join(1500);
                 }
             }
             if (bleConnectingThread != null)
             {
                 bleConnectingThread.Abort();
-                bleConnectingThread.Join();
+                bleConnectingThread.Join(1500);
             }
         }
 
