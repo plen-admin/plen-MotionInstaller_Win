@@ -18,13 +18,13 @@ namespace BLEMotionInstaller
     public class SerialCommProcessFinishedEventArgs : EventArgs
     {
         public string PortName;
-        List<PLEN.MFX.BLEMfxCommand> sendedMfxCommandList;
+        List<PLEN.BLECommand> sendedCommandList;
         public byte[] ReceiveData;
 
-        public SerialCommProcessFinishedEventArgs(string portname, List<PLEN.MFX.BLEMfxCommand> sendedMfxList)
+        public SerialCommProcessFinishedEventArgs(string portname, List<PLEN.BLECommand> sendedList)
         {
             PortName = portname;
-            sendedMfxCommandList = sendedMfxList;
+            sendedCommandList = sendedList;
         }
     }
     /// <summary>
@@ -123,7 +123,7 @@ namespace BLEMotionInstaller
         /// <summary>
         /// 送信するモーションコマンドリスト
         /// </summary>
-        private List<PLEN.MFX.BLEMfxCommand> sendMfxCommandList;
+        private List<PLEN.BLECommand> sendCommandList;
         /// <summary>
         /// BgLibインスタンス
         /// </summary>
@@ -149,7 +149,7 @@ namespace BLEMotionInstaller
         /// <param name="portName">シリアルポート名</param>
         /// <param name="mfxCommandList">送信モーションファイルリスト</param>
         /// <param name="isContinuationMode">自動継続モードにするかしないか</param>
-        public SerialCommProcess(object sender, string portName, List<PLEN.MFX.BLEMfxCommand> mfxCommandList)
+        public SerialCommProcess(object sender, string portName, List<PLEN.BLECommand> commandList)
         {
             formSender = (Form1)sender;
 
@@ -163,15 +163,21 @@ namespace BLEMotionInstaller
             serialPort.Parity = System.IO.Ports.Parity.None;
             serialPort.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(SerialDataReceived);
             // 送信モーションコマンドリストを登録
-            sendMfxCommandList = mfxCommandList;
+            sendCommandList = commandList;
             // bgLib初期化．イベント登録．
             bgLib = new Bluegiga.BGLib();
             bgLib.BLEEventGAPScanResponse += new Bluegiga.BLE.Events.GAP.ScanResponseEventHandler(bgLib_BLEEventGAPScanResponse);
             bgLib.BLEEventConnectionStatus += new Bluegiga.BLE.Events.Connection.StatusEventHandler(bgLib_BLEEventConnectionStatus);
             bgLib.BLEEventATTClientProcedureCompleted += new Bluegiga.BLE.Events.ATTClient.ProcedureCompletedEventHandler(bgLib_BLEEventATTClientProcedureCompleted);
 
-            serialPort.Open();
-            //serialCommProcessMessage(this, "Opened");
+            try
+            {
+                serialPort.Open();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
         /// <summary>
@@ -370,11 +376,11 @@ namespace BLEMotionInstaller
 
             try
             {
-                foreach (PLEN.MFX.BLEMfxCommand sendMfxCommand in sendMfxCommandList)
+                foreach (PLEN.BLECommand sendCommand in sendCommandList)
                 {
                     // 送信データを文字列からbyte配列に変換
-                    byte[] mfxCommandArray = System.Text.Encoding.ASCII.GetBytes(sendMfxCommand.strConvertedMfx);
-                    serialCommProcessMessage(this, "【" + sendMfxCommand.Name + "】 is sending...");
+                    byte[] mfxCommandArray = System.Text.Encoding.ASCII.GetBytes(sendCommand.convertedStr);
+                    serialCommProcessMessage(this, "【" + sendCommand.Name + "】 is sending...");
 
                     /*---- ここからモーションデータ送信 -----*/
                     /*-- header --*/
@@ -441,14 +447,14 @@ namespace BLEMotionInstaller
                         serialCommProcessMessage(this, "frame written. [" + (index + 1).ToString() + "/" + ((mfxCommandArray.Length - 30) / 100).ToString() + "]");
                         Thread.Sleep(50);
                     }
-                    serialCommProcessMessage(this, "【" + sendMfxCommand.Name + "】send Complete. ...");
+                    serialCommProcessMessage(this, "【" + sendCommand.Name + "】send Complete. ...");
                     sendedMfxCommandCnt++;
                     serialCommProcessMfxCommandSended(this);
                     Thread.Sleep(500);
                 }
                 // 終了イベントを発生
                 serialCommProcessMessage(this, "Communication Finished");
-                serialCommProcessFinished(this, new SerialCommProcessFinishedEventArgs(serialPort.PortName, sendMfxCommandList));
+                serialCommProcessFinished(this, new SerialCommProcessFinishedEventArgs(serialPort.PortName, sendCommandList));
                 connectedDict[connectedBLEKey] = BLEState.SendCompleted;
             }
             catch (Exception e)

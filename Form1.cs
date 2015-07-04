@@ -9,6 +9,7 @@ using System.Windows.Forms;
 using System.IO.Ports;
 using System.Threading;
 using System.Management;
+using System.Runtime.Serialization.Json;
 
 
 namespace BLEMotionInstaller
@@ -37,7 +38,7 @@ namespace BLEMotionInstaller
         /// <summary>
         /// 送信するモーションファイル（コマンド済）のリスト
         /// </summary>
-        private List<PLEN.MFX.BLEMfxCommand> sendMfxCommandList = new List<PLEN.MFX.BLEMfxCommand>();
+        private List<PLEN.BLECommand> sendCommandList = new List<PLEN.BLECommand>();
         /// <summary>
         /// 送信完了PLEN台数
         /// </summary>
@@ -115,12 +116,12 @@ namespace BLEMotionInstaller
         /// </summary>
         private void button3_Click(object sender, EventArgs e)
         {
-            sendMfxCommandList.Clear();
+            sendCommandList.Clear();
             labelSendMfxCnt.Text = "0";
 
             using (OpenFileDialog of = new OpenFileDialog())
             {
-                of.Filter = "モーションファイル（.mfx）|*.mfx";
+                of.Filter = "モーションファイル|*.mfx;*.json";
                 of.Multiselect = true;  //複数のファイルを選択できるようにする
                 of.ShowDialog();
 
@@ -133,14 +134,9 @@ namespace BLEMotionInstaller
                         return;
 
                     }
-                    // 選択されたファイルがモーションファイル(*.mfx)でない
-                    if (System.IO.Path.GetExtension(fileName) != ".mfx")
-                    {
-                        textBox1.AppendText("error : モーションファイル(.mfx)を選択してください。" + System.Environment.NewLine);
-                        return;
-                    }
 
-                    try
+                    // 選択されたファイルがmfx形式のモーションファイル
+                    if (System.IO.Path.GetExtension(fileName) == ".mfx")
                     {
                         using (System.IO.FileStream stream = new System.IO.FileStream(fileName, System.IO.FileMode.Open))
                         {
@@ -164,26 +160,62 @@ namespace BLEMotionInstaller
                             textBox1.AppendText("【" + fileName + "】モーションファイルを送信データとして変換します..." + System.Environment.NewLine);
 
                             PLEN.MFX.BLEMfxCommand bleMfx = new PLEN.MFX.BLEMfxCommand(tagMfx);
-                            if (bleMfx.convertMfxCommand() == false)
+                            if (bleMfx.convertCommand() == false)
                             {
                                 textBox1.AppendText("送信データの変換に失敗しました。" + System.Environment.NewLine);
                                 return;
                             }
                             // 送信データに変換できたモーションファイルをリストに送信リストに追加
-                            sendMfxCommandList.Add(bleMfx);
+                            sendCommandList.Add(bleMfx);
                             //textBox1.AppendText(bleMfx.strConvertedMfxForDisplay + System.Environment.NewLine);
-                            textBox1.AppendText(string.Format("***** モーションファイルを送信データに変換しました。（{0}バイト） *****", bleMfx.strConvertedMfx.Length) + System.Environment.NewLine + System.Environment.NewLine);
-
+                            textBox1.AppendText(string.Format("***** モーションファイルを送信データに変換しました。（{0}バイト） *****", bleMfx.convertedStr.Length) + System.Environment.NewLine + System.Environment.NewLine);
+                            textBox1.AppendText(bleMfx.convertedStrForDisplay + System.Environment.NewLine);
                         }
                     }
-                    catch (Exception ex)
+                    // 選択されたファイルがjson形式のモーションファイル
+                    else if (System.IO.Path.GetExtension(fileName) == ".json")
                     {
-                        textBox1.AppendText("error : モーションファイルの読み込みに失敗しました。" + System.Environment.NewLine);
-                        textBox1.AppendText("（" + ex.Message + "）");
+                        using (System.IO.FileStream stream = new System.IO.FileStream(fileName, System.IO.FileMode.Open))
+                        {
+                            // モーションファイル（XML形式)
+                            PLEN.JSON.Main jsonData;
+                            /*----- XML読み出し -----*/
+                            try
+                            {
+                                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(PLEN.JSON.Main));
+                                jsonData = (PLEN.JSON.Main)serializer.ReadObject(stream);
+                            }
+                            catch (Exception ex)
+                            {
+                                textBox1.AppendText("error : JSONファイルの解析に失敗しました。選択したモーションファイルが破損している恐れがあります。" + System.Environment.NewLine);
+                                textBox1.AppendText("（" + ex.Message + "）");
+
+                                return;
+                            }
+
+                            /*----- XML→送信データ(string)への変換 -----*/
+                            textBox1.AppendText("【" + fileName + "】モーションファイルを送信データとして変換します..." + System.Environment.NewLine);
+
+                            PLEN.JSON.BLEJsonCommand bleJson = new PLEN.JSON.BLEJsonCommand(jsonData);
+                            if (bleJson.convertCommand() == false)
+                            {
+                                textBox1.AppendText("送信データの変換に失敗しました。" + System.Environment.NewLine);
+                                return;
+                            }
+                            // 送信データに変換できたモーションファイルをリストに送信リストに追加
+                            sendCommandList.Add(bleJson);
+                            //textBox1.AppendText(bleMfx.strConvertedMfxForDisplay + System.Environment.NewLine);
+                            textBox1.AppendText(string.Format("***** モーションファイルを送信データに変換しました。（{0}バイト） *****", bleJson.convertedStr.Length) + System.Environment.NewLine + System.Environment.NewLine);
+                            textBox1.AppendText(bleJson.convertedStrForDisplay + System.Environment.NewLine);
+                        }
+                    }
+                    else
+                    {
+                        textBox1.AppendText("error : モーションファイル(.mfx)を選択してください。" + System.Environment.NewLine);
                         return;
                     }
                     // 送信モーションファイル数の画面表示
-                    labelSendMfxCnt.Text = sendMfxCommandList.Count.ToString();
+                    labelSendMfxCnt.Text = sendCommandList.Count.ToString();
                 }
             }
         }
@@ -200,52 +232,70 @@ namespace BLEMotionInstaller
                 textBox1.AppendText("***** 通信を開始します..... *****" + System.Environment.NewLine);
 
                 // 送信すべきモーションファイルが一つも読み込まれていないとき
-                if (sendMfxCommandList.Count <= 0)
+                if (sendCommandList.Count <= 0)
                 {
                     textBox1.AppendText("error : 送信するモーションファイルが読み込まれていません。" + System.Environment.NewLine);
                     return;
                 }
-                // 今現在存在するシリアルポートのインスタンスをすべてリセット（削除）
-                portInstanceDict.Clear();
 
-                // 今現在動作している通信用スレッドをすべて停止．スレッドテーブルをリセット
-                if (threadDict.Count > 0)
+                try
                 {
+                    // 今現在存在するシリアルポートのインスタンスをすべてリセット（削除）
+                    portInstanceDict.Clear();
+
+                    // 今現在動作している通信用スレッドをすべて停止．スレッドテーブルをリセット
+                    if (threadDict.Count > 0)
+                    {
+                        foreach (string key in threadDict.Keys)
+                        {
+                            threadDict[key].Abort();
+                        }
+                    }
+                    // 各リスト，テーブルをリセット
+                    threadDict.Clear();
+                    SerialCommProcess.connectedDict.Clear();
+                    bleConnectingRequestPortList.Clear();
+
+                    // 選択されているポート名を用いてシリアル通信スレッドを作成．実行．
+                    foreach (string portDictKey in listBox1.SelectedItems)
+                    {
+                        string portName = portDict[portDictKey];
+                        // シリアル通信スレッド用インスタンス作成
+                        // イベント登録
+                        portInstanceDict.Add(portName, new SerialCommProcess(this, portName, sendCommandList));
+                        portInstanceDict[portName].serialCommProcessMessage += new SerialCommProcessMessageHandler(serialCommEventProcessMessage);
+                        portInstanceDict[portName].serialCommProcessFinished += new SerialCommProcessFinishedHandler(serialCommEventProcessFinished);
+                        portInstanceDict[portName].serialCommProcessBLEConncted += new SerialCommProcessBLEConnectedHander(serialCommProcessEventBLEConncted);
+                        portInstanceDict[portName].serialCommProcessMfxCommandSended += new SeiralCommProcessMfxCommandSendedHandler(serialCommProcessEventMfxCommandSended);
+                        // スレッドテーブルに新規のシリアル通信スレッドを登録し，実行
+                        threadDict.Add(portName, new Thread(portInstanceDict[portName].start));
+                        threadDict[portName].Name = "SerialCommThread_" + portName;
+                        threadDict[portName].Start();
+                    }
+                    // PLEN2接続スレッドを起動
+                    bleConnectingThread = new Thread(bleConnectingThreadFunc);
+                    bleConnectingThread.Name = "BLEConnectingThread";
+                    bleConnectingThread.Start();
+
+                    toolStripStatusLabel2.Text = "コマンド送信完了PLEN数：0";
+                    commandSendedPLENCnt = 0;
+                    button1.Enabled = false;
+                    button2.Enabled = true;
+                }
+                // 例外が発生→すべてのスレッドを停止させる
+                catch (Exception ex)
+                {
+                    textBox1.AppendText("エラーが発生しました． " + System.Environment.NewLine + "massage  [ " + ex.Message + " ]" + System.Environment.NewLine);
                     foreach (string key in threadDict.Keys)
                     {
                         threadDict[key].Abort();
                     }
-                }
-                // 各リスト，テーブルをリセット
-                threadDict.Clear();
-                SerialCommProcess.connectedDict.Clear();
-                bleConnectingRequestPortList.Clear();
+                    if (bleConnectingThread != null)
+                        bleConnectingThread.Abort();
 
-                // 選択されているポート名を用いてシリアル通信スレッドを作成．実行．
-                foreach (string portDictKey in listBox1.SelectedItems)
-                {
-                    string portName = portDict[portDictKey];
-                    // シリアル通信スレッド用インスタンス作成
-                    // イベント登録
-                    portInstanceDict.Add(portName, new SerialCommProcess(this, portName, sendMfxCommandList));
-                    portInstanceDict[portName].serialCommProcessMessage += new SerialCommProcessMessageHandler(serialCommEventProcessMessage);
-                    portInstanceDict[portName].serialCommProcessFinished += new SerialCommProcessFinishedHandler(serialCommEventProcessFinished);
-                    portInstanceDict[portName].serialCommProcessBLEConncted += new SerialCommProcessBLEConnectedHander(serialCommProcessEventBLEConncted);
-                    portInstanceDict[portName].serialCommProcessMfxCommandSended += new SeiralCommProcessMfxCommandSendedHandler(serialCommProcessEventMfxCommandSended);
-                    // スレッドテーブルに新規のシリアル通信スレッドを登録し，実行
-                    threadDict.Add(portName, new Thread(portInstanceDict[portName].start));
-                    threadDict[portName].Name = "SerialCommThread_" + portName;
-                    threadDict[portName].Start();
+                    button1.Enabled = true;
+                    button2.Enabled = false;
                 }
-                // PLEN2接続スレッドを起動
-                bleConnectingThread = new Thread(bleConnectingThreadFunc);
-                bleConnectingThread.Name = "BLEConnectingThread";
-                bleConnectingThread.Start();
-
-                toolStripStatusLabel2.Text = "コマンド送信完了PLEN数：0";
-                commandSendedPLENCnt = 0;
-                button1.Enabled = false;
-                button2.Enabled = true;
             }
         }
         /// <summary>
@@ -279,7 +329,7 @@ namespace BLEMotionInstaller
                 // PLENと接続が完了してるポートのみラベル
                 if (portInstanceDict[key].BLEConnectState == BLEState.Connected || portInstanceDict[key].BLEConnectState == BLEState.SendCompleted)
 
-                    toolStripStatusLabel1.Text += "[ " + portInstanceDict[key].PortName + "   " + portInstanceDict[key].sendedMfxCommandCnt.ToString() + " / " + sendMfxCommandList.Count + " ]    ";
+                    toolStripStatusLabel1.Text += "[ " + portInstanceDict[key].PortName + "   " + portInstanceDict[key].sendedMfxCommandCnt.ToString() + " / " + sendCommandList.Count + " ]    ";
             }
         }
 
