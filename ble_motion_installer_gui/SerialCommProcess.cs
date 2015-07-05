@@ -480,11 +480,6 @@ namespace BLEMotionInstaller
             receiveRawData = new byte[serialPort.BytesToRead];
             serialPort.Read(receiveRawData, 0, serialPort.BytesToRead);
 
-            // 受信データをメインスレッドにメッセージ送信（デバッグ用）
-            //for (int i = 0; i < receiveRawData.Length; i++)
-            //    rcvDataStr += receiveRawData[i].ToString() + " ";
-            //serialCommProcessMessage(" << [RX] [" + serialPort.PortName + "] " + rcvDataStr);
-
             //bgLibに処理を委譲（受信データに応じたイベントが発生）
             for (int i = 0; i < receiveRawData.Length; i++)
                 bgLib.Parse(receiveRawData[i]);

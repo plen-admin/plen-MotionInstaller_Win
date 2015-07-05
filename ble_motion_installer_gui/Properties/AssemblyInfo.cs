@@ -8,9 +8,9 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("MotionInstaller")]
 [assembly: AssemblyDescription("PLENにモーションを書き込むためのツールです．")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("PLEN Project Ltd.")]
+[assembly: AssemblyCompany("PLEN Project Company Ltd.")]
 [assembly: AssemblyProduct("モーションインストーラ")]
-[assembly: AssemblyCopyright("Copyright ©  2015 PLEN Project Ltd.")]
+[assembly: AssemblyCopyright("Copyright (c) 2015 PLEN Project Company Ltd. & Yugo KAJIWARA")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -32,5 +32,5 @@ using System.Runtime.InteropServices;
 // すべての値を指定するか、下のように '*' を使ってビルドおよびリビジョン番号を 
 // 既定値にすることができます:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.0.1.0")]
+[assembly: AssemblyFileVersion("1.0.1.0")]

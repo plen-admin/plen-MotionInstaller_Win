@@ -80,6 +80,19 @@ namespace BLEMotionInstaller
             {
                 portDict.Add("0", "Error " + ex.Message);
             }
+
+            // プログラム起動時の引数がある場合，引数が指定するJSONファイルを読み込み
+            // Note...args[0]：本プログラムのパス（関係なし），args[1]：JSONファイルのパス，args[2]：JSONファイル名
+            string[] args = Environment.GetCommandLineArgs();
+            if (args.Length > 2)
+            {
+                // JSONファイル読み込み．送信データに変換．（変換後送信ボタンをフォーカスさせる）
+                using (System.IO.FileStream stream = new System.IO.FileStream(args[1], System.IO.FileMode.Open))
+                {
+                    readJsonFile(stream, args[2]);
+                    button1.Focus();
+                }
+         }
         }
         /// <summary>
         /// PLEN2接続スレッドメソッド（bleConnectingThread上で動作）
@@ -117,7 +130,7 @@ namespace BLEMotionInstaller
         private void button3_Click(object sender, EventArgs e)
         {
             sendCommandList.Clear();
-            labelSendMfxCnt.Text = "0";
+            labelSendCmdCnt.Text = "0";
 
             using (OpenFileDialog of = new OpenFileDialog())
             {
@@ -134,91 +147,100 @@ namespace BLEMotionInstaller
                         return;
 
                     }
-
-                    // 選択されたファイルがmfx形式のモーションファイル
-                    if (System.IO.Path.GetExtension(fileName) == ".mfx")
+                    // ファイルの拡張子に応じてモーションファイルを読み込む
+                    using (System.IO.FileStream stream = new System.IO.FileStream(fileName, System.IO.FileMode.Open))
                     {
-                        using (System.IO.FileStream stream = new System.IO.FileStream(fileName, System.IO.FileMode.Open))
-                        {
-                            // モーションファイル（XML形式)
-                            PLEN.MFX.XmlMfxModel tagMfx;
-                            /*----- XML読み出し -----*/
-                            try
-                            {
-                                System.Xml.Serialization.XmlSerializer serializer = new System.Xml.Serialization.XmlSerializer(typeof(PLEN.MFX.XmlMfxModel));
-                                tagMfx = (PLEN.MFX.XmlMfxModel)serializer.Deserialize(stream);
-                            }
-                            catch (Exception ex)
-                            {
-                                textBox1.AppendText("error : XML解析に失敗しました。選択したモーションファイルが破損している恐れがあります。" + System.Environment.NewLine);
-                                textBox1.AppendText("（" + ex.Message + "）");
+                        if (System.IO.Path.GetExtension(fileName) == ".mfx")
+                            readMfxFile(stream, fileName);
+                        else if (System.IO.Path.GetExtension(fileName) == ".json")
+                            readJsonFile(stream, fileName);
+                        else
+                            textBox1.AppendText("error : モーションファイル(.mfx)を選択してください。" + System.Environment.NewLine);
 
-                                return;
-                            }
-
-                            /*----- XML→送信データ(string)への変換 -----*/
-                            textBox1.AppendText("【" + fileName + "】モーションファイルを送信データとして変換します..." + System.Environment.NewLine);
-
-                            PLEN.MFX.BLEMfxCommand bleMfx = new PLEN.MFX.BLEMfxCommand(tagMfx);
-                            if (bleMfx.convertCommand() == false)
-                            {
-                                textBox1.AppendText("送信データの変換に失敗しました。" + System.Environment.NewLine);
-                                return;
-                            }
-                            // 送信データに変換できたモーションファイルをリストに送信リストに追加
-                            sendCommandList.Add(bleMfx);
-                            //textBox1.AppendText(bleMfx.strConvertedMfxForDisplay + System.Environment.NewLine);
-                            textBox1.AppendText(string.Format("***** モーションファイルを送信データに変換しました。（{0}バイト） *****", bleMfx.convertedStr.Length) + System.Environment.NewLine + System.Environment.NewLine);
-                            textBox1.AppendText(bleMfx.convertedStrForDisplay + System.Environment.NewLine);
-                        }
                     }
-                    // 選択されたファイルがjson形式のモーションファイル
-                    else if (System.IO.Path.GetExtension(fileName) == ".json")
-                    {
-                        using (System.IO.FileStream stream = new System.IO.FileStream(fileName, System.IO.FileMode.Open))
-                        {
-                            // モーションファイル（XML形式)
-                            PLEN.JSON.Main jsonData;
-                            /*----- XML読み出し -----*/
-                            try
-                            {
-                                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(PLEN.JSON.Main));
-                                jsonData = (PLEN.JSON.Main)serializer.ReadObject(stream);
-                            }
-                            catch (Exception ex)
-                            {
-                                textBox1.AppendText("error : JSONファイルの解析に失敗しました。選択したモーションファイルが破損している恐れがあります。" + System.Environment.NewLine);
-                                textBox1.AppendText("（" + ex.Message + "）");
-
-                                return;
-                            }
-
-                            /*----- XML→送信データ(string)への変換 -----*/
-                            textBox1.AppendText("【" + fileName + "】モーションファイルを送信データとして変換します..." + System.Environment.NewLine);
-
-                            PLEN.JSON.BLEJsonCommand bleJson = new PLEN.JSON.BLEJsonCommand(jsonData);
-                            if (bleJson.convertCommand() == false)
-                            {
-                                textBox1.AppendText("送信データの変換に失敗しました。" + System.Environment.NewLine);
-                                return;
-                            }
-                            // 送信データに変換できたモーションファイルをリストに送信リストに追加
-                            sendCommandList.Add(bleJson);
-                            //textBox1.AppendText(bleMfx.strConvertedMfxForDisplay + System.Environment.NewLine);
-                            textBox1.AppendText(string.Format("***** モーションファイルを送信データに変換しました。（{0}バイト） *****", bleJson.convertedStr.Length) + System.Environment.NewLine + System.Environment.NewLine);
-                            textBox1.AppendText(bleJson.convertedStrForDisplay + System.Environment.NewLine);
-                        }
-                    }
-                    else
-                    {
-                        textBox1.AppendText("error : モーションファイル(.mfx)を選択してください。" + System.Environment.NewLine);
-                        return;
-                    }
-                    // 送信モーションファイル数の画面表示
-                    labelSendMfxCnt.Text = sendCommandList.Count.ToString();
                 }
             }
         }
+        /// <summary>
+        /// モーションデータ（MFXファイル（XML記述））読み込みメソッド
+        /// </summary>
+        /// <param name="stream">ストリーム</param>
+        /// <param name="fileName">ファイル名</param>
+        private void readMfxFile(System.IO.Stream stream, string fileName)
+        {
+            // モーションファイル（XML形式)
+            PLEN.MFX.XmlMfxModel tagMfx;
+            /*----- XML読み出し -----*/
+            try
+            {
+                System.Xml.Serialization.XmlSerializer serializer = new System.Xml.Serialization.XmlSerializer(typeof(PLEN.MFX.XmlMfxModel));
+                tagMfx = (PLEN.MFX.XmlMfxModel)serializer.Deserialize(stream);
+            }
+            catch (Exception ex)
+            {
+                textBox1.AppendText("error : XML解析に失敗しました。選択したモーションファイルが破損している恐れがあります。" + System.Environment.NewLine);
+                textBox1.AppendText("（" + ex.Message + "）");
+
+                return;
+            }
+
+            /*----- XML→送信データ(string)への変換 -----*/
+            textBox1.AppendText("【" + fileName + "】モーションファイルを送信データとして変換します..." + System.Environment.NewLine);
+
+            PLEN.MFX.BLEMfxCommand bleMfx = new PLEN.MFX.BLEMfxCommand(tagMfx);
+            if (bleMfx.convertCommand() == false)
+            {
+                textBox1.AppendText("送信データの変換に失敗しました。" + System.Environment.NewLine);
+                return;
+            }
+            // 送信データに変換できたモーションファイルをリストに送信リストに追加
+            sendCommandList.Add(bleMfx);
+            //textBox1.AppendText(bleMfx.strConvertedMfxForDisplay + System.Environment.NewLine);
+            textBox1.AppendText(string.Format("***** モーションファイルを送信データに変換しました。（{0}バイト） *****", bleMfx.convertedStr.Length) + System.Environment.NewLine + System.Environment.NewLine);
+
+            // 送信モーションファイル数の画面表示
+            labelSendCmdCnt.Text = sendCommandList.Count.ToString();    
+        }
+        /// <summary>
+        /// モーションデータ（JSON形式）読み込みメソッド
+        /// </summary>
+        /// <param name="stream">ストリーム</param>
+        /// <param name="fileName">ファイル名</param>
+        private void readJsonFile(System.IO.Stream stream, string fileName)
+        {
+            // モーションファイル（JSON形式)
+            PLEN.JSON.Main jsonData;
+            /*----- JSON読み出し -----*/
+            try
+            {
+                DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(PLEN.JSON.Main));
+                jsonData = (PLEN.JSON.Main)serializer.ReadObject(stream);
+            }
+            catch (Exception ex)
+            {
+                textBox1.AppendText("error : JSONファイルの解析に失敗しました。選択したモーションファイルが破損している恐れがあります。" + System.Environment.NewLine);
+                textBox1.AppendText("（" + ex.Message + "）");
+
+                return;
+            }
+
+            /*----- JSON→送信データ(string)への変換 -----*/
+            textBox1.AppendText("【" + fileName + "】モーションファイルを送信データとして変換します..." + System.Environment.NewLine);
+
+            PLEN.JSON.BLEJsonCommand bleJson = new PLEN.JSON.BLEJsonCommand(jsonData);
+            if (bleJson.convertCommand() == false)
+            {
+                textBox1.AppendText("送信データの変換に失敗しました。" + System.Environment.NewLine);
+                return;
+            }
+            // 送信データに変換できたモーションファイルをリストに送信リストに追加
+            sendCommandList.Add(bleJson);
+            textBox1.AppendText(string.Format("***** モーションファイルを送信データに変換しました。（{0}バイト） *****", bleJson.convertedStr.Length) + System.Environment.NewLine + System.Environment.NewLine);
+  
+            // 送信モーションファイル数の画面表示
+            labelSendCmdCnt.Text = sendCommandList.Count.ToString();
+        }
+
 
         /// <summary>
         /// 通信開始ボタン投下メソッド（イベント呼び出し）
