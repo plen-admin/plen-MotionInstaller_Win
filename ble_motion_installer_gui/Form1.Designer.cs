@@ -28,11 +28,12 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripStatusLabelPadding = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripStatusLabel2 = new System.Windows.Forms.ToolStripStatusLabel();
-            this.labelSendMfxCnt = new System.Windows.Forms.Label();
+            this.labelSendCmdCnt = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.button3 = new System.Windows.Forms.Button();
             this.label2 = new System.Windows.Forms.Label();
@@ -41,7 +42,6 @@
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.button1 = new System.Windows.Forms.Button();
             this.listBox1 = new System.Windows.Forms.ListBox();
-            this.checkBox1 = new System.Windows.Forms.CheckBox();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -51,37 +51,37 @@
             this.toolStripStatusLabel1,
             this.toolStripStatusLabelPadding,
             this.toolStripStatusLabel2});
-            this.statusStrip1.Location = new System.Drawing.Point(0, 389);
+            this.statusStrip1.Location = new System.Drawing.Point(0, 390);
             this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(634, 23);
+            this.statusStrip1.Size = new System.Drawing.Size(634, 22);
             this.statusStrip1.TabIndex = 19;
             this.statusStrip1.Text = "statusStrip1";
             // 
             // toolStripStatusLabel1
             // 
             this.toolStripStatusLabel1.Name = "toolStripStatusLabel1";
-            this.toolStripStatusLabel1.Size = new System.Drawing.Size(0, 18);
+            this.toolStripStatusLabel1.Size = new System.Drawing.Size(0, 17);
             // 
             // toolStripStatusLabelPadding
             // 
             this.toolStripStatusLabelPadding.Name = "toolStripStatusLabelPadding";
-            this.toolStripStatusLabelPadding.Size = new System.Drawing.Size(454, 18);
+            this.toolStripStatusLabelPadding.Size = new System.Drawing.Size(469, 17);
             this.toolStripStatusLabelPadding.Spring = true;
             // 
             // toolStripStatusLabel2
             // 
             this.toolStripStatusLabel2.Name = "toolStripStatusLabel2";
-            this.toolStripStatusLabel2.Size = new System.Drawing.Size(165, 18);
+            this.toolStripStatusLabel2.Size = new System.Drawing.Size(150, 17);
             this.toolStripStatusLabel2.Text = "コマンド送信完了PLEN数：0";
             // 
-            // labelSendMfxCnt
+            // labelSendCmdCnt
             // 
-            this.labelSendMfxCnt.AutoSize = true;
-            this.labelSendMfxCnt.Location = new System.Drawing.Point(171, 5);
-            this.labelSendMfxCnt.Name = "labelSendMfxCnt";
-            this.labelSendMfxCnt.Size = new System.Drawing.Size(11, 12);
-            this.labelSendMfxCnt.TabIndex = 18;
-            this.labelSendMfxCnt.Text = "0";
+            this.labelSendCmdCnt.AutoSize = true;
+            this.labelSendCmdCnt.Location = new System.Drawing.Point(171, 5);
+            this.labelSendCmdCnt.Name = "labelSendCmdCnt";
+            this.labelSendCmdCnt.Size = new System.Drawing.Size(11, 12);
+            this.labelSendCmdCnt.TabIndex = 18;
+            this.labelSendCmdCnt.Text = "0";
             // 
             // label3
             // 
@@ -134,9 +134,9 @@
             // 
             // textBox1
             // 
-            this.textBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-                        | System.Windows.Forms.AnchorStyles.Left)
-                        | System.Windows.Forms.AnchorStyles.Right)));
+            this.textBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.textBox1.Location = new System.Drawing.Point(173, 100);
             this.textBox1.Multiline = true;
             this.textBox1.Name = "textBox1";
@@ -157,8 +157,8 @@
             // 
             // listBox1
             // 
-            this.listBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
-                        | System.Windows.Forms.AnchorStyles.Left)));
+            this.listBox1.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left)));
             this.listBox1.FormattingEnabled = true;
             this.listBox1.ItemHeight = 12;
             this.listBox1.Location = new System.Drawing.Point(18, 100);
@@ -167,24 +167,13 @@
             this.listBox1.Size = new System.Drawing.Size(128, 280);
             this.listBox1.TabIndex = 10;
             // 
-            // checkBox1
-            // 
-            this.checkBox1.AutoSize = true;
-            this.checkBox1.Location = new System.Drawing.Point(14, 22);
-            this.checkBox1.Name = "checkBox1";
-            this.checkBox1.Size = new System.Drawing.Size(100, 16);
-            this.checkBox1.TabIndex = 20;
-            this.checkBox1.Text = "自動継続モード";
-            this.checkBox1.UseVisualStyleBackColor = true;
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(634, 412);
-            this.Controls.Add(this.checkBox1);
             this.Controls.Add(this.statusStrip1);
-            this.Controls.Add(this.labelSendMfxCnt);
+            this.Controls.Add(this.labelSendCmdCnt);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.button3);
             this.Controls.Add(this.label2);
@@ -193,8 +182,9 @@
             this.Controls.Add(this.textBox1);
             this.Controls.Add(this.button1);
             this.Controls.Add(this.listBox1);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
-            this.Text = "Form1";
+            this.Text = "PLEN モーションインストーラ";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
             this.statusStrip1.ResumeLayout(false);
@@ -208,7 +198,7 @@
 
         private System.Windows.Forms.StatusStrip statusStrip1;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel1;
-        private System.Windows.Forms.Label labelSendMfxCnt;
+        private System.Windows.Forms.Label labelSendCmdCnt;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.Button button3;
         private System.Windows.Forms.Label label2;
@@ -219,7 +209,6 @@
         private System.Windows.Forms.ListBox listBox1;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabelPadding;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel2;
-        private System.Windows.Forms.CheckBox checkBox1;
 
     }
 }

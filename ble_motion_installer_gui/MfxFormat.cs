@@ -8,24 +8,12 @@ namespace PLEN.MFX
     /// <summary>
     /// モーションファイル送信データ化メソッド
     /// </summary>
-    public class BLEMfxCommand
+    public class BLEMfxCommand : PLEN.BLECommand
     {
         /// <summary>
         /// コマンド変換元Mfxデータ（XML形式）
         /// </summary>
         public XmlMfxModel xmlMfx;
-        /// <summary>
-        /// 変換完了モーションデータ（文字列形式）
-        /// </summary>
-        public string strConvertedMfx;
-        /// <summary>
-        /// 変換完了モーションデータ（文字列形式．画面表示用．）
-        /// </summary>
-        public string strConvertedMfxForDisplay;
-        /// <summary>
-        /// モーションデータ変換完了フラグ
-        /// </summary>
-        public bool isMfxConverted = false;
         /// <summary>
         /// コンストラクタ
         /// </summary>
@@ -37,7 +25,7 @@ namespace PLEN.MFX
         /// <summary>
         /// モーションデータ名
         /// </summary>
-        public string Name
+        public override string Name
         {
             get
             {
@@ -53,22 +41,22 @@ namespace PLEN.MFX
         /// モーションデータ変換メソッド
         /// </summary>
         /// <returns>false：失敗，true：成功</returns>
-        public bool convertMfxCommand()
+        public override bool convertCommand()
         {
-            strConvertedMfx = "";
-            strConvertedMfxForDisplay = "";
-            isMfxConverted = false;
+            convertedStr = "";
+            convertedStrForDisplay = "";
+            isConverted = false;
             try
             {
                 foreach (TagMotionModel tagMotion in xmlMfx.Motion)
                 {
                     /*----- システムコマンド「slotNum」 -----*/
-                    strConvertedMfx += int.Parse(tagMotion.ID).ToString("x2");
-                    strConvertedMfxForDisplay += "[slotNum : " + int.Parse(tagMotion.ID).ToString("x2") + "] ";
+                    convertedStr += int.Parse(tagMotion.ID).ToString("x2");
+                    convertedStrForDisplay += "[slotNum : " + int.Parse(tagMotion.ID).ToString("x2") + "] ";
 
                     /*----- システムコマンド「name」 -----*/
-                    strConvertedMfx += string.Format("{0,-20}", tagMotion.Name);
-                    strConvertedMfxForDisplay += "[name : " + string.Format("{0,-20}", tagMotion.Name) + "] ";  
+                    convertedStr += string.Format("{0,-20}", tagMotion.Name);
+                    convertedStrForDisplay += "[name : " + string.Format("{0,-20}", tagMotion.Name) + "] ";  
      
                     /*----- システムコマンド「config」 -----*/
                     // Paramはid:0，id:1の2つしかない
@@ -77,41 +65,41 @@ namespace PLEN.MFX
                     // ParamリストをIDの昇順に並び替え
                     tagMotion.Extra.Param.Sort((o1, o2) => (Int32.Parse(o1.ID)).CompareTo(Int32.Parse(o2.ID)));
                     // コマンドを追加
-                    strConvertedMfx += byte.Parse(tagMotion.Extra.Function).ToString("x2");
-                    strConvertedMfx += byte.Parse(tagMotion.Extra.Param[0].Param).ToString("x2");
-                    strConvertedMfx += byte.Parse(tagMotion.Extra.Param[1].Param).ToString("x2");
-                    strConvertedMfxForDisplay += "[config : " + int.Parse(tagMotion.Extra.Function).ToString("x2");
-                    strConvertedMfxForDisplay += byte.Parse(tagMotion.Extra.Param[0].Param).ToString("x2");
-                    strConvertedMfxForDisplay += byte.Parse(tagMotion.Extra.Param[1].Param).ToString("x2") + "] ";
+                    convertedStr += byte.Parse(tagMotion.Extra.Function).ToString("x2");
+                    convertedStr += byte.Parse(tagMotion.Extra.Param[0].Param).ToString("x2");
+                    convertedStr += byte.Parse(tagMotion.Extra.Param[1].Param).ToString("x2");
+                    convertedStrForDisplay += "[config : " + int.Parse(tagMotion.Extra.Function).ToString("x2");
+                    convertedStrForDisplay += byte.Parse(tagMotion.Extra.Param[0].Param).ToString("x2");
+                    convertedStrForDisplay += byte.Parse(tagMotion.Extra.Param[1].Param).ToString("x2") + "] ";
 
                     /*----- システムコマンド「frameNum」 -----*/
-                    strConvertedMfx += int.Parse(tagMotion.FrameNum).ToString("x2");
-                    strConvertedMfxForDisplay += "[frameNum : " + byte.Parse(tagMotion.FrameNum).ToString("x2") + "] ";
+                    convertedStr += int.Parse(tagMotion.FrameNum).ToString("x2");
+                    convertedStrForDisplay += "[frameNum : " + byte.Parse(tagMotion.FrameNum).ToString("x2") + "] ";
 
                     /*----- システムコマンド「frame」 -----*/
                     // FrameリストをIDの昇順に並び替え
                     tagMotion.Frame.Sort((o1, o2) => (Int32.Parse(o1.ID)).CompareTo(Int32.Parse(o2.ID)));
-                    strConvertedMfxForDisplay += "[frame : ";
+                    convertedStrForDisplay += "[frame : ";
                     foreach (TagFrameModel tagFrame in tagMotion.Frame)
                     {
-                        strConvertedMfx += short.Parse(tagFrame.Time).ToString("x4");
-                        strConvertedMfxForDisplay += " " + short.Parse(tagFrame.Time).ToString("x4");
+                        convertedStr += short.Parse(tagFrame.Time).ToString("x4");
+                        convertedStrForDisplay += " " + short.Parse(tagFrame.Time).ToString("x4");
                         // JointリストをIDの昇順に並べ替え
                         tagFrame.Joint.Sort((o1, o2) => (Int32.Parse(o1.ID)).CompareTo(Int32.Parse(o2.ID)));
                         foreach (TagJointModel tagJoint in tagFrame.Joint)
                         {
-                            strConvertedMfx += short.Parse(tagJoint.Joint).ToString("x4");
-                            strConvertedMfxForDisplay += short.Parse(tagJoint.Joint).ToString("x4");
+                            convertedStr += short.Parse(tagJoint.Joint).ToString("x4");
+                            convertedStrForDisplay += short.Parse(tagJoint.Joint).ToString("x4");
                         }
                     }
-                    strConvertedMfxForDisplay += "]";
+                    convertedStrForDisplay += "]";
                 }
             }
             catch (Exception)
             {
                 return false;
             }
-            isMfxConverted = true;
+            isConverted = true;
             return true;
         }
     }

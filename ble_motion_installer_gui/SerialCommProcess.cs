@@ -18,13 +18,13 @@ namespace BLEMotionInstaller
     public class SerialCommProcessFinishedEventArgs : EventArgs
     {
         public string PortName;
-        List<PLEN.MFX.BLEMfxCommand> sendedMfxCommandList;
+        List<PLEN.BLECommand> sendedCommandList;
         public byte[] ReceiveData;
 
-        public SerialCommProcessFinishedEventArgs(string portname, List<PLEN.MFX.BLEMfxCommand> sendedMfxList)
+        public SerialCommProcessFinishedEventArgs(string portname, List<PLEN.BLECommand> sendedList)
         {
             PortName = portname;
-            sendedMfxCommandList = sendedMfxList;
+            sendedCommandList = sendedList;
         }
     }
     /// <summary>
@@ -97,8 +97,6 @@ namespace BLEMotionInstaller
         /// 送信完了モーションファイル数
         /// </summary>
         public int sendedMfxCommandCnt;
-
-        public readonly bool IsContinuationMode;
         /// <summary>
         /// モーションデータ送信間隔（単位：[ms]）
         /// </summary>
@@ -125,7 +123,7 @@ namespace BLEMotionInstaller
         /// <summary>
         /// 送信するモーションコマンドリスト
         /// </summary>
-        private List<PLEN.MFX.BLEMfxCommand> sendMfxCommandList;
+        private List<PLEN.BLECommand> sendCommandList;
         /// <summary>
         /// BgLibインスタンス
         /// </summary>
@@ -151,7 +149,7 @@ namespace BLEMotionInstaller
         /// <param name="portName">シリアルポート名</param>
         /// <param name="mfxCommandList">送信モーションファイルリスト</param>
         /// <param name="isContinuationMode">自動継続モードにするかしないか</param>
-        public SerialCommProcess(object sender, string portName, List<PLEN.MFX.BLEMfxCommand> mfxCommandList, bool isContinuationMode)
+        public SerialCommProcess(object sender, string portName, List<PLEN.BLECommand> commandList)
         {
             formSender = (Form1)sender;
 
@@ -165,16 +163,21 @@ namespace BLEMotionInstaller
             serialPort.Parity = System.IO.Ports.Parity.None;
             serialPort.DataReceived += new System.IO.Ports.SerialDataReceivedEventHandler(SerialDataReceived);
             // 送信モーションコマンドリストを登録
-            sendMfxCommandList = mfxCommandList;
+            sendCommandList = commandList;
             // bgLib初期化．イベント登録．
             bgLib = new Bluegiga.BGLib();
             bgLib.BLEEventGAPScanResponse += new Bluegiga.BLE.Events.GAP.ScanResponseEventHandler(bgLib_BLEEventGAPScanResponse);
             bgLib.BLEEventConnectionStatus += new Bluegiga.BLE.Events.Connection.StatusEventHandler(bgLib_BLEEventConnectionStatus);
             bgLib.BLEEventATTClientProcedureCompleted += new Bluegiga.BLE.Events.ATTClient.ProcedureCompletedEventHandler(bgLib_BLEEventATTClientProcedureCompleted);
-            IsContinuationMode = isContinuationMode;
 
-            serialPort.Open();
-            //serialCommProcessMessage(this, "Opened");
+            try
+            {
+                serialPort.Open();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
         /// <summary>
@@ -224,12 +227,7 @@ namespace BLEMotionInstaller
             // 　自身が破棄される前に必ずシリアルポートを閉じる
             try
             {
-                // 親スレッドから破棄（終了ボタン投下など）されるまでずっと続ける（自動継続モードのみ）
-                do
-                {
-                    halfDuplexComm();
-                    Thread.Sleep(500);
-                } while (IsContinuationMode == true);
+             halfDuplexComm();
             }
             catch (Exception) {  }
             finally
@@ -250,8 +248,8 @@ namespace BLEMotionInstaller
                         serialCommProcessMessage(this, "PLEN2との接続が解除できませんでした．BLEドングルを抜き差ししてください．");
                     }
                 }
-                // 自動継続モードでなければ今回接続したクライアントのキーをリストから削除
-                if (IsContinuationMode == false && connectedDict.Keys.Contains(connectedBLEKey))
+                // 今回接続したクライアントのキーをリストから削除
+                if (connectedDict.Keys.Contains(connectedBLEKey))
                     connectedDict.Remove(connectedBLEKey);
 
                 serialPort.Close();
@@ -291,7 +289,6 @@ namespace BLEMotionInstaller
 
                 // CAUTION!: 以下は横着した実装。本来は上記の手順を踏むべき。
                 // PLEN2からのアドバタイズなので、接続を試みる
-
                 Int64 key = 0;
                 // キー作成
                 for (int index = 0; index < 6; index++)
@@ -379,11 +376,11 @@ namespace BLEMotionInstaller
 
             try
             {
-                foreach (PLEN.MFX.BLEMfxCommand sendMfxCommand in sendMfxCommandList)
+                foreach (PLEN.BLECommand sendCommand in sendCommandList)
                 {
                     // 送信データを文字列からbyte配列に変換
-                    byte[] mfxCommandArray = System.Text.Encoding.ASCII.GetBytes(sendMfxCommand.strConvertedMfx);
-                    serialCommProcessMessage(this, "【" + sendMfxCommand.Name + "】 is sending...");
+                    byte[] mfxCommandArray = System.Text.Encoding.ASCII.GetBytes(sendCommand.convertedStr);
+                    serialCommProcessMessage(this, "【" + sendCommand.Name + "】 is sending...");
 
                     /*---- ここからモーションデータ送信 -----*/
                     /*-- header --*/
@@ -450,14 +447,14 @@ namespace BLEMotionInstaller
                         serialCommProcessMessage(this, "frame written. [" + (index + 1).ToString() + "/" + ((mfxCommandArray.Length - 30) / 100).ToString() + "]");
                         Thread.Sleep(50);
                     }
-                    serialCommProcessMessage(this, "【" + sendMfxCommand.Name + "】send Complete. ...");
+                    serialCommProcessMessage(this, "【" + sendCommand.Name + "】send Complete. ...");
                     sendedMfxCommandCnt++;
                     serialCommProcessMfxCommandSended(this);
                     Thread.Sleep(500);
                 }
                 // 終了イベントを発生
                 serialCommProcessMessage(this, "Communication Finished");
-                serialCommProcessFinished(this, new SerialCommProcessFinishedEventArgs(serialPort.PortName, sendMfxCommandList));
+                serialCommProcessFinished(this, new SerialCommProcessFinishedEventArgs(serialPort.PortName, sendCommandList));
                 connectedDict[connectedBLEKey] = BLEState.SendCompleted;
             }
             catch (Exception e)
@@ -482,11 +479,6 @@ namespace BLEMotionInstaller
 
             receiveRawData = new byte[serialPort.BytesToRead];
             serialPort.Read(receiveRawData, 0, serialPort.BytesToRead);
-
-            // 受信データをメインスレッドにメッセージ送信（デバッグ用）
-            //for (int i = 0; i < receiveRawData.Length; i++)
-            //    rcvDataStr += receiveRawData[i].ToString() + " ";
-            //serialCommProcessMessage(" << [RX] [" + serialPort.PortName + "] " + rcvDataStr);
 
             //bgLibに処理を委譲（受信データに応じたイベントが発生）
             for (int i = 0; i < receiveRawData.Length; i++)
