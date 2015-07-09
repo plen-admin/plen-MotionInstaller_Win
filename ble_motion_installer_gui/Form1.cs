@@ -87,9 +87,11 @@ namespace BLEMotionInstaller
             if (args.Length > 2)
             {
                 // JSONファイル読み込み．送信データに変換．（変換後送信ボタンをフォーカスさせる）
-                using (System.IO.FileStream stream = new System.IO.FileStream(args[1], System.IO.FileMode.Open))
+                string jsonPath = Uri.UnescapeDataString(args[1].Replace('+', ' '));
+                string name = Uri.UnescapeDataString(args[2].Replace('+', ' '));
+                using (System.IO.FileStream stream = new System.IO.FileStream(jsonPath, System.IO.FileMode.Open))
                 {
-                    readJsonFile(stream, args[2]);
+                    readJsonFile(stream, name);
                     button1.Focus();
                 }
          }
@@ -235,8 +237,9 @@ namespace BLEMotionInstaller
             }
             // 送信データに変換できたモーションファイルをリストに送信リストに追加
             sendCommandList.Add(bleJson);
+//            textBox1.AppendText(bleJson.convertedStrForDisplay);
             textBox1.AppendText(string.Format("***** モーションファイルを送信データに変換しました。（{0}バイト） *****", bleJson.convertedStr.Length) + System.Environment.NewLine + System.Environment.NewLine);
-  
+            
             // 送信モーションファイル数の画面表示
             labelSendCmdCnt.Text = sendCommandList.Count.ToString();
         }

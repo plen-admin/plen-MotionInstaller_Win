@@ -30,7 +30,7 @@ namespace PLEN.JSON
                 return jsonData.name;
             }
         }
-        private readonly int[] JOINT_MAP = {0, 1, 2, 3, 4, 5, 6, 7, 8, -1, -1, 9, 10, 11, 12, 13, 14, 15, 16, 17, -1, -1, -1, -1};
+        private readonly int[] JOINT_MAP = {0, 1, 2, 3, 4, 5, 6, 7, 8, -1, -1, -1, 9, 10, 11, 12, 13, 14, 15, 16, 17, -1, -1, -1};
 
         /// <summary>
         /// モーションデータ変換メソッド
@@ -61,13 +61,14 @@ namespace PLEN.JSON
                 convertedStrForDisplay += "[frameNum : " + jsonData.frames.Count.ToString("x2") + "] ";
 
                 /*----- システムコマンド「frame」 -----*/
-                convertedStrForDisplay += "[frame : ";
+   
                 foreach (Frame frame in jsonData.frames)
                 {
+                    convertedStrForDisplay += "[frame : ";
                     string[] jointStrs = Enum.GetNames(typeof(JointName));
 
                     convertedStr += frame.transition_time_ms.ToString("x4");
-                    convertedStrForDisplay += " " + frame.transition_time_ms.ToString("x4");
+                    convertedStrForDisplay += " " + frame.transition_time_ms.ToString("x4") + " ";
                     // JSONファイル中の関節名（output.device）を送信用のインデックスに変換
                     // Note...インデックスは一部連続でないためJOINT_MAPによってマッピングを行う.
                     //        あまりのインデックスは0埋め
@@ -77,7 +78,7 @@ namespace PLEN.JSON
                         if (JOINT_MAP[i] < 0)
                         {
                             convertedStr += "0000";
-                            convertedStrForDisplay += "0000";
+                            convertedStrForDisplay += "0000 ";
                         }
                         else
                         {
@@ -88,7 +89,7 @@ namespace PLEN.JSON
                                 if (output.device == jointStrs[JOINT_MAP[i]])
                                 {   
                                     convertedStr += output.value.ToString("x4");
-                                    convertedStrForDisplay += output.value.ToString("x4");
+                                    convertedStrForDisplay += output.value.ToString("x4") + " ";
                                     break;
                                 }
 
@@ -96,8 +97,9 @@ namespace PLEN.JSON
                             }
                         }
                     }
+
+                    convertedStrForDisplay += "]";
                 }
-                convertedStrForDisplay += "]";
             }
             catch (Exception)
             {
