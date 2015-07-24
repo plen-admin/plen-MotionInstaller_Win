@@ -36,7 +36,15 @@ namespace PLEN.MFX
                     return "";
             }
         }
+        public override short Slot
+        {
+            get
+            {
+                return slot;
+            }
+        }
 
+        private short slot;
         /// <summary>
         /// モーションデータ変換メソッド
         /// </summary>
@@ -51,8 +59,9 @@ namespace PLEN.MFX
                 foreach (TagMotionModel tagMotion in xmlMfx.Motion)
                 {
                     /*----- システムコマンド「slotNum」 -----*/
-                    convertedStr += int.Parse(tagMotion.ID).ToString("x2");
-                    convertedStrForDisplay += "[slotNum : " + int.Parse(tagMotion.ID).ToString("x2") + "] ";
+                    slot = short.Parse(tagMotion.ID);
+                    convertedStr += slot.ToString("x2");
+                    convertedStrForDisplay += "[slotNum : " + slot.ToString("x2") + "] ";
 
                     /*----- システムコマンド「name」 -----*/
                     convertedStr += string.Format("{0,-20}", tagMotion.Name);

@@ -48,6 +48,9 @@ namespace BLEMotionInstaller
         /// </summary>
         private Thread bleConnectingThread;
 
+        private const string BLE_COMPORT_NAME = "Bluegiga Bluetooth Low Energy";
+        private const string USB_PLEN_COMPORT_NAME = "Arduino Micro";
+
 
         public Form1()
         {
@@ -70,15 +73,17 @@ namespace BLEMotionInstaller
                     portDict.Add(key, String.Format("{0}", queryObj["DeviceID"]));
                     listBox1.Items.Add(key);
                     // BlueGigaのドングルに関してはあらかじめlistBoxを選択状態にしておく
-                    if (key.Contains("Bluegiga Bluetooth Low Energy"))
+                    if (key.Contains(BLE_COMPORT_NAME))
                     {
                         listBox1.SetSelected(listBox1.Items.Count - 1, true);
                     }
+                    cmbBoxMode.SelectedIndex = 0;
                 }
             }
             catch (ManagementException ex)
             {
                 portDict.Add("0", "Error " + ex.Message);
+                
             }
 
             // プログラム起動時の引数がある場合，引数が指定するJSONファイルを読み込み
@@ -114,7 +119,7 @@ namespace BLEMotionInstaller
                             textBox1.AppendText("Connection Thread     >> [" + bleConnectingRequestPortList[0] + "] Start PLEN2-Connection." + System.Environment.NewLine);
                         });
                         // 接続要求をしているCOMポートに対して，PLEN2接続処理を行う
-                        portInstanceDict[bleConnectingRequestPortList[0]].bleConnect();
+                        ((SerialCommProcessBLE)portInstanceDict[bleConnectingRequestPortList[0]]).bleConnect();
                         // 接続
                         bleConnectingRequestPortList.RemoveAt(0);
                     }
@@ -285,13 +290,19 @@ namespace BLEMotionInstaller
                     foreach (string portDictKey in listBox1.SelectedItems)
                     {
                         string portName = portDict[portDictKey];
-                        // シリアル通信スレッド用インスタンス作成
-                        // イベント登録
-                        portInstanceDict.Add(portName, new SerialCommProcess(this, portName, sendCommandList));
+
+                        // SelectedIndex：0..BLE接続，1..USB接続
+                        if (cmbBoxMode.SelectedIndex == 0)
+                            portInstanceDict.Add(portName, new SerialCommProcessBLE(this, portName, sendCommandList));
+                        else
+                            portInstanceDict.Add(portName, new SerialCommProcessUSB(this, portName, sendCommandList));
+
+                    // イベント登録
                         portInstanceDict[portName].serialCommProcessMessage += new SerialCommProcessMessageHandler(serialCommEventProcessMessage);
                         portInstanceDict[portName].serialCommProcessFinished += new SerialCommProcessFinishedHandler(serialCommEventProcessFinished);
-                        portInstanceDict[portName].serialCommProcessBLEConncted += new SerialCommProcessBLEConnectedHander(serialCommProcessEventBLEConncted);
-                        portInstanceDict[portName].serialCommProcessMfxCommandSended += new SeiralCommProcessMfxCommandSendedHandler(serialCommProcessEventMfxCommandSended);
+                        portInstanceDict[portName].serialCommProcessConnected += new SerialCommProcessBLEConnectedHander(serialCommProcessEventBLEConncted);
+                        portInstanceDict[portName].serialCommProcessCommandSended += new SeiralCommProcessMfxCommandSendedHandler(serialCommProcessEventMfxCommandSended);
+
                         // スレッドテーブルに新規のシリアル通信スレッドを登録し，実行
                         threadDict.Add(portName, new Thread(portInstanceDict[portName].start));
                         threadDict[portName].Name = "SerialCommThread_" + portName;
@@ -352,9 +363,8 @@ namespace BLEMotionInstaller
             foreach (string key in sortedPortInstanceDictKeys)
             {
                 // PLENと接続が完了してるポートのみラベル
-                if (portInstanceDict[key].BLEConnectState == BLEState.Connected || portInstanceDict[key].BLEConnectState == BLEState.SendCompleted)
-
-                    toolStripStatusLabel1.Text += "[ " + portInstanceDict[key].PortName + "   " + portInstanceDict[key].sendedMfxCommandCnt.ToString() + " / " + sendCommandList.Count + " ]    ";
+                if (portInstanceDict[key].ConnectState == SerialState.Connected || portInstanceDict[key].ConnectState == SerialState.SendCompleted)
+                    toolStripStatusLabel1.Text += "[ " + portInstanceDict[key].PortName + "   " + portInstanceDict[key].sendedCommandCnt.ToString() + " / " + sendCommandList.Count + " ]    ";
             }
         }
 
@@ -461,6 +471,35 @@ namespace BLEMotionInstaller
             {
                 bleConnectingThread.Abort();
                 bleConnectingThread.Join(1500);
+            }
+        }
+
+        private void cmbBoxMode_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            listBox1.SelectedIndex = -1;
+            if (cmbBoxMode.SelectedIndex == 0)
+            {
+                foreach (Object listItemObj in listBox1.Items)
+                {
+                    string listItemStr = (string)listItemObj;
+                    if (listItemStr.Contains(BLE_COMPORT_NAME))
+                    {
+                        listBox1.SelectedItems.Add(listItemObj);
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                foreach (Object listItemObj in listBox1.Items)
+                {
+                    string listItemStr = (string)listItemObj;
+                    if (listItemStr.Contains(USB_PLEN_COMPORT_NAME))
+                    {
+                        listBox1.SelectedIndex = listBox1.FindString(listItemStr);
+                        break;
+                    }
+                }
             }
         }
 

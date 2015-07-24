@@ -27,7 +27,13 @@ namespace PLEN
         {
             get;
         }
-
+        /// <summary>
+        /// スロット番号
+        /// </summary>
+        public abstract short Slot
+        {
+            get;
+        }
         /// <summary>
         /// モーションデータ変換メソッド
         /// </summary>
