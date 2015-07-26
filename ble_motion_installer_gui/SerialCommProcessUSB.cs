@@ -126,7 +126,7 @@ namespace BLEMotionInstaller
                     serialCommProcessMessage(this, "【" + sendCommand.Name + "】send Complete. ...");
                     sendedCommandCnt++;
                     serialCommProcessCommandSended(this);
-                    Thread.Sleep(100);
+                    Thread.Sleep(200);
                     // Debug
                     /*serialCommProcessMessage(this, "[ReadMessage] : " + Environment.NewLine + readMessage);
                     readMessage = "";
@@ -138,9 +138,9 @@ namespace BLEMotionInstaller
                 serialCommProcessMessage(this, "Communication Finished");
                 Thread.Sleep(100);
                 // Debug
-                /*serialCommProcessMessage(this, "[ReadMessage] : " + Environment.NewLine + readMessage);
+                //serialCommProcessMessage(this, "[ReadMessage] : " + Environment.NewLine + readMessage);
                 serialCommProcessFinished(this, new SerialCommProcessFinishedEventArgs(serialPort.PortName, sendCommandList));
-                */
+                
                 connectState = SerialState.SendCompleted;
             }
             catch (Exception e)

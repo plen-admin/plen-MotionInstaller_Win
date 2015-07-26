@@ -25,7 +25,22 @@ namespace BLEMotionInstaller
         /// モーションデータ送信完了イベント（1モーション送信完了ごとに呼び出される）
         /// </summary>
         public override event SeiralCommProcessMfxCommandSendedHandler serialCommProcessCommandSended;
-       /// <summary>
+        /// <summary>
+        /// PLEN2キャラスティックUUID
+        /// </summary>
+        protected readonly byte[] PLEN2_TX_CHARACTERISTIC_UUID =
+	        {
+		        0xF9, 0x0E, 0x9C, 0xFE, 0x7E, 0x05, 0x44, 0xA5, 0x9D, 0x75, 0xF1, 0x36, 0x44, 0xD6, 0xF6, 0x45
+	        };
+        private readonly byte[] PLEN_CONTROL_SERVICE_UUID =
+          {
+                0xE1, 0xF4, 0x04, 0x69, 0xCF, 0xE1, 0x43, 0xC1, 0x83, 0x8D, 0xDD, 0xBC, 0x9D, 0xAF, 0xDD, 0xE6
+          };
+
+        private ushort plenTxAtthandle = 0;
+        private ushort serviceStartHandle = 0;
+        private ushort serviceEndHandle = 0;
+        /// <summary>
         /// BLE接続先クライアントキー
         /// </summary>
         private Int64 connectedBLEKey = 0;
@@ -68,8 +83,10 @@ namespace BLEMotionInstaller
             bgLib = new Bluegiga.BGLib();
             bgLib.BLEEventGAPScanResponse += new Bluegiga.BLE.Events.GAP.ScanResponseEventHandler(bgLib_BLEEventGAPScanResponse);
             bgLib.BLEEventConnectionStatus += new Bluegiga.BLE.Events.Connection.StatusEventHandler(bgLib_BLEEventConnectionStatus);
+            bgLib.BLEEventATTClientGroupFound += new Bluegiga.BLE.Events.ATTClient.GroupFoundEventHandler(bgLib_BLEEventGroupFound);
+            bgLib.BLEEventATTClientFindInformationFound += new Bluegiga.BLE.Events.ATTClient.FindInformationFoundEventHandler(bleLib_BLEEventFindInformationFound);
             bgLib.BLEEventATTClientProcedureCompleted += new Bluegiga.BLE.Events.ATTClient.ProcedureCompletedEventHandler(bgLib_BLEEventATTClientProcedureCompleted);
-
+            
             try
             {
                 serialPort.Open();
@@ -80,19 +97,18 @@ namespace BLEMotionInstaller
             }
         }
 
-        /// <summary>
-        /// AtrributeWrite-データ送信完了メソッド（イベント呼び出し）
-        /// </summary>
-        /// <param name="sender">sender</param>
-        /// <param name="e">Args</param>
-        void bgLib_BLEEventATTClientProcedureCompleted(object sender, Bluegiga.BLE.Events.ATTClient.ProcedureCompletedEventArgs e)
+        Int64 getBleAddress(byte[] addressArray)
         {
-            //serialCommProcessMessage(this, "ProcedureCompleted Result : " + e.result);
+            if (addressArray.Length < 6)
+                return 0;
 
-            // e.result == 0 ⇒データ送信正常完了
-            if (e.result == 0)
-                isAttributeWrited = true;
+            Int64 key = 0;
+            for (int index = 0; index < 6; index++)
+                key += (Int64)addressArray[index] << (index * 8);
+
+            return key;
         }
+
         /// <summary>
         /// PLEN2接続メソッド（注：同時に複数のドングルがPLEN2に接続しないよう，本メソッドはシングルタスクで動作させることを推奨！）
         /// （現在Form1のbleConnectingThreadのみが接続処理を行うようにしている．）
@@ -111,7 +127,7 @@ namespace BLEMotionInstaller
 
             // PLEN2との接続を試みる
             Thread.Sleep(10);
-            serialCommProcessMessage(this, "PLEN2 searching...");
+            serialCommProcessMessage(this, "PLEN searching...");
             connectState = SerialState.NotConnected;
             bgLib.SendCommand(serialPort, bgLib.BLECommandGAPDiscover(1));
             while (connectState != SerialState.Connected)
@@ -159,98 +175,168 @@ namespace BLEMotionInstaller
         /***** GAPScanResponse検知メソッド（bgLibイベント呼び出し) *****/
         private void bgLib_BLEEventGAPScanResponse(object sender, Bluegiga.BLE.Events.GAP.ScanResponseEventArgs e)
         {
-            // データパケットの長さが25以上であれば、UUIDが乗っていないかチェックする
-            if (e.data.Length > 25)
+            Int64 key = getBleAddress(e.sender);
+
+            // 取得したキーに対してまだ接続していない場合，接続を試みる
+            // ※connectedDictは他スレッドからの参照もありうるので排他制御
+            if (connectState == SerialState.NotConnected)
             {
-                byte[] data_buf = new byte[16];
-
-                for (int i = 0; i < data_buf.Length; i++)
-                    data_buf[i] = e.data[i + 9];
-
-                // データパケットにUUIDが乗っていた場合
-                if (Object.ReferenceEquals(data_buf, PLEN2_TX_CHARACTERISTIC_UUID) && connectState == SerialState.NotConnected)
+                // PLEN BLEのアドレスはパブリックアドレスである
+                if (e.address_type != 0)
                 {
-                    connectState = SerialState.Connecting;
-                    // PLEN2からのアドバタイズなので、接続を試みる
-                    bgLib.SendCommand(serialPort, bgLib.BLECommandGAPConnectDirect(e.sender, 0, 60, 76, 100, 0));
+                    return;
                 }
-            }
-            else
-            {
-                // 本来の接続手順を実装する。(具体的には以下の通りです。)
-                // 1. ble_cmd_gap_connect_direct()
-                // 2. ble_cmd_attclient_find_information()
-                // 3. ble_evt_attclient_find_information_found()を処理し、UUIDを比較
-                //     a. UUIDが一致する場合は、そのキャラクタリスティックハンドルを取得 → 接続完了
-                //     b. 全てのキャラクタリスティックについてUUIDが一致しない場合は、4.以降の処理へ
-                // 4. MACアドレスを除外リストに追加した後、ble_cmd_connection_disconnect()
-                // 5. 再度ble_cmd_gap_discove()
-                // 6. 1.へ戻る。ただし、除外リストとMACアドレスを比較し、該当するものには接続をしない。
-
-                // CAUTION!: 以下は横着した実装。本来は上記の手順を踏むべき。
-                // PLEN2からのアドバタイズなので、接続を試みる
-                Int64 key = 0;
-                // キー作成
-                for (int index = 0; index < 6; index++)
-                    key += (Int64)e.sender[index] << (index * 8);
-
-                // 取得したキーに対してまだ接続していない場合，接続を試みる
-                // ※connectedDictは他スレッドからの参照もありうるので排他制御
-                if (connectState == SerialState.NotConnected)
+                lock(connectedDict)
                 {
-                    lock(connectedDict)
+                    // 取得したキーに対して，すでに接続を試みたならばスルー
+                    if (connectedDict.ContainsKey(key) == true && connectedDict[key] != SerialState.NotConnected)
                     {
-                        // 取得したキーに対して，すでに接続を試みたならばスルー
-                        if (connectedDict.ContainsKey(key) == true && connectedDict[key] != SerialState.NotConnected)
-                        {
-                            return;
-                        }
-                        // 取得したキーをリストに追加，状態を接続要求中へ
-                        if (connectedDict.ContainsKey(key) == true)
-                            connectedDict.Add(key, SerialState.Connecting);
-                        else
-                            connectedDict[key] = SerialState.Connecting;
-                        // 自分の接続状態を更新
-                        connectState = SerialState.Connecting;
-                        // 取得したキーに対して接続を試みる(接続完了後イベント発生)
-                        bgLib.SendCommand(serialPort, bgLib.BLECommandGAPConnectDirect(e.sender, 0, 60, 76, 100, 0));
-                        
+                        return;
                     }
-                }
-                
+ 
+                    // 取得したキーをリストに追加，状態を接続要求中へ
+                    if (connectedDict.ContainsKey(key) == true)
+                        connectedDict.Add(key, SerialState.Connecting);
+                    else
+                        connectedDict[key] = SerialState.Connecting;
 
+                }
+                // 自分の接続状態を更新
+                connectState = SerialState.Connecting;
+                plenTxAtthandle = 0;
+                serviceStartHandle = 0;
+                serviceEndHandle = 0;
+                // 取得したキーに対して接続を試みる(接続完了後イベント発生)
+                //bgLib.BLECommandGAPEndProcedure();
+                bgLib.SendCommand(serialPort, bgLib.BLECommandGAPConnectDirect(e.sender, e.address_type, 60, 76, 100, 0));
             }
         }
         /// <summary>
-        /// BLEクライアント接続完了メソッド（イベント呼び出し）
+        /// BLEクライアント接続完了メソッド（bgLibイベント呼び出し）
         /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
         private void bgLib_BLEEventConnectionStatus(object sender, Bluegiga.BLE.Events.Connection.StatusEventArgs e)
         {
-            // PLENと接続完了
+            // アドレス作成
+            Int64 key = getBleAddress(e.address);
+
+            // ペリフェラルと接続完了
             if ((e.flags & 0x01) != 0)
             {
-                // アドレスリストを更新（接続中→接続完了へ）
+                // アドレスリストを更新（接続要求中→サービス検知へ）
                 // ※connectedDictは他スレッドからも操作されるので排他制御
                 lock (connectedDict)
                 {
-                    // アドレス作成
-                    Int64 key = 0;
-                    for (int index = 0; index < 6; index++)
-                        key += (Int64)e.address[index] << (index * 8);
-                    // 状態更新（接続完了）
-                    connectedDict[key] = SerialState.Connected;
+                    serialCommProcessMessage(this, "[" + key.ToString() + "] connected. Scan Services...");
+
+                    lock(connectedDict)
+                        connectedDict[key] = SerialState.ScanServices;
+                    connectState = SerialState.ScanServices;
                     connectedBLEKey = key;
+                    bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientReadByGroupType(e.connection, 0x0001, 0xFFFF, new byte[] { 0x00, 0x28 }));
                 }
-                serialCommProcessMessage(this, "Connected [" + connectedBLEKey.ToString() + "]");
-                connectState = SerialState.Connected;
+
             }
             // 再度接続を試みる
             else
+            {
+                lock (connectedDict)
+                    connectedDict[key] = SerialState.NotConnected;
+                connectState = SerialState.NotConnected;
                 bgLib.SendCommand(serialPort, bgLib.BLECommandGAPDiscover(1));
+            }
+        }
+        /// <summary>
+        /// サービス検知メソッド（bgLibイベント呼び出し）
+        /// </summary>
+        void bgLib_BLEEventGroupFound(object sender, Bluegiga.BLE.Events.ATTClient.GroupFoundEventArgs e)
+        {
+            // e.uuidはリトルエンディアン
+            if (e.uuid.SequenceEqual(PLEN_CONTROL_SERVICE_UUID.Reverse()))
+            {
+                serviceStartHandle = e.start;
+                serviceEndHandle = e.end;
+            }
+        }
+        /// <summary>
+        /// キャラクタリスティック検知メソッド（bgLibイベント呼び出し）
+        /// </summary>
+        void bleLib_BLEEventFindInformationFound(object sender, Bluegiga.BLE.Events.ATTClient.FindInformationFoundEventArgs e)
+        {
+            // e.uuidはリトルエンディアン
+            if(e.uuid.SequenceEqual(PLEN2_TX_CHARACTERISTIC_UUID.Reverse()))
+            {
+                plenTxAtthandle = e.chrhandle;
+            }
         }
 
+        /// <summary>
+        /// ATTClientProcedureCompletedメソッド（bgLibイベント呼び出し）
+        /// </summary>
+        void bgLib_BLEEventATTClientProcedureCompleted(object sender, Bluegiga.BLE.Events.ATTClient.ProcedureCompletedEventArgs e)
+        { 
+            switch (connectState)
+            {
+                // Attribute Write完了
+                case SerialState.Connected:
+                     if (e.result == 0)
+                        isAttributeWrited = true;
+                    break;
+                // Serviceスキャン完了
+                case SerialState.ScanServices:
+                    // PLEN Control Serviceあり
+                    if (serviceEndHandle > 0)
+                    {
+                        lock(connectedDict)
+                            connectedDict[connectedBLEKey] = SerialState.ScanCharacteristics;
+
+                        serialCommProcessMessage(this, "PLEN Control Service Detected. Scan Characteristics...");
+                        connectState = SerialState.ScanCharacteristics;
+                        bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientFindInformation(e.connection, serviceStartHandle, serviceEndHandle));
+                    }
+                    // PLEN Control Serivceなし→PLENでない（接続リストから除外し再探索）
+                    else
+                    {
+                        lock(connectedDict)
+                            connectedDict[connectedBLEKey] = SerialState.NotPLEN2;
+
+                        serialCommProcessMessage(this, "[" + connectedBLEKey.ToString() + "] is not PLEN.");
+                        bgLib.SendCommand(serialPort, bgLib.BLECommandConnectionDisconnect(0));
+                        Thread.Sleep(250);
+
+                        connectState = SerialState.NotConnected;
+                        bgLib.SendCommand(serialPort, bgLib.BLECommandGAPDiscover(1));
+                        serialCommProcessMessage(this, "PLEN re-searching...");
+                    }
+
+                    break;
+                // Characteristicスキャン完了
+                case SerialState.ScanCharacteristics:
+                    // PLEN TX Characteristicあり→接続しているペリフェラルがPLENであることが確定
+                    if (plenTxAtthandle > 0)
+                    {
+                        lock (connectedDict)
+                            connectedDict[connectedBLEKey] = SerialState.Connected;
+
+                        connectState = SerialState.Connected;
+                        serialCommProcessMessage(this, "[" + connectedBLEKey.ToString() + "] is PLEN !!");
+                    }
+                    // PLEN TX Characteristicなし→PLENでない（接続リストから除外し再探索）
+                    else
+                    {
+                        lock (connectedDict)
+                            connectedDict[connectedBLEKey] = SerialState.NotPLEN2;
+
+                        serialCommProcessMessage(this, "[" + connectedBLEKey.ToString() + "] is not PLEN.");
+                        bgLib.SendCommand(serialPort, bgLib.BLECommandConnectionDisconnect(0));
+                        Thread.Sleep(250);
+
+                        connectState = SerialState.NotConnected;
+                        bgLib.SendCommand(serialPort, bgLib.BLECommandGAPDiscover(1));
+                        serialCommProcessMessage(this, "PLEN re-searching...");
+                    }
+                    break;
+            }
+        }
 
         /// <summary>
         /// 半二重通信メソッド
@@ -271,36 +357,37 @@ namespace BLEMotionInstaller
                 Thread.Sleep(1);
 
             /*-- ここからPLEN2と接続中 --*/
-            serialCommProcessMessage(this, "PLEN2 Connected");
+            serialCommProcessMessage(this, "PLEN Connected");
             serialCommProcessConnected(this);
+
+            Thread.Sleep(100);
 
             try
             {
                 foreach (PLEN.BLECommand sendCommand in sendCommandList)
                 {
                     // 送信データを文字列からbyte配列に変換
-                    byte[] mfxCommandArray = System.Text.Encoding.ASCII.GetBytes(sendCommand.convertedStr);
+                    byte[] commandArray = System.Text.Encoding.ASCII.GetBytes(sendCommand.convertedStr);
                     serialCommProcessMessage(this, "【" + sendCommand.Name + "】 is sending...");
 
                     /*---- ここからモーションデータ送信 -----*/
                     /*-- header --*/
                     isAttributeWrited = false;
-                    byte[] test = System.Text.Encoding.ASCII.GetBytes("#IN");
-                    bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientAttributeWrite(0, 31, System.Text.Encoding.ASCII.GetBytes("#IN")));
+                    bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientAttributeWrite(0, plenTxAtthandle, System.Text.Encoding.ASCII.GetBytes("#IN")));
                     while (isAttributeWrited == false)
                         Thread.Sleep(1);
 
                     Thread.Sleep(DELAY_INTERVAL);
 
                     isAttributeWrited = false;
-                    bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientAttributeWrite(0, 31, mfxCommandArray.Take(20).ToArray()));
+                    bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientAttributeWrite(0, plenTxAtthandle, commandArray.Take(20).ToArray()));
                     while (isAttributeWrited == false)
                         Thread.Sleep(1);
 
                     Thread.Sleep(DELAY_INTERVAL);
 
                     isAttributeWrited = false;
-                    bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientAttributeWrite(0, 31, mfxCommandArray.Skip(20).Take(10).ToArray()));
+                    bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientAttributeWrite(0, plenTxAtthandle, commandArray.Skip(20).Take(10).ToArray()));
                     while (isAttributeWrited == false)
                         Thread.Sleep(1);
 
@@ -309,42 +396,42 @@ namespace BLEMotionInstaller
 
                     Thread.Sleep(50);
                     /*-- frame --*/
-                    for (int index = 0; index < (mfxCommandArray.Length - 30) / 100; index++)
+                    for (int index = 0; index < (commandArray.Length - 30) / 100; index++)
                     {
                         isAttributeWrited = false;
-                        bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientAttributeWrite(0, 31, mfxCommandArray.Skip(30 + index * 100).Take(20).ToArray()));
+                        bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientAttributeWrite(0, plenTxAtthandle, commandArray.Skip(30 + index * 100).Take(20).ToArray()));
                         while (isAttributeWrited == false)
                             Thread.Sleep(1);
 
                         Thread.Sleep(DELAY_INTERVAL);
 
                         isAttributeWrited = false;
-                        bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientAttributeWrite(0, 31, mfxCommandArray.Skip(50 + index * 100).Take(20).ToArray()));
+                        bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientAttributeWrite(0, plenTxAtthandle, commandArray.Skip(50 + index * 100).Take(20).ToArray()));
                         while (isAttributeWrited == false)
                             Thread.Sleep(1);
 
                         Thread.Sleep(DELAY_INTERVAL);
 
                         isAttributeWrited = false;
-                        bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientAttributeWrite(0, 31, mfxCommandArray.Skip(70 + index * 100).Take(20).ToArray()));
+                        bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientAttributeWrite(0, plenTxAtthandle, commandArray.Skip(70 + index * 100).Take(20).ToArray()));
                         while (isAttributeWrited == false)
                             Thread.Sleep(1);
                         Thread.Sleep(DELAY_INTERVAL);
                         isAttributeWrited = false;
-                        bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientAttributeWrite(0, 31, mfxCommandArray.Skip(90 + index * 100).Take(20).ToArray()));
+                        bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientAttributeWrite(0, plenTxAtthandle, commandArray.Skip(90 + index * 100).Take(20).ToArray()));
                         while (isAttributeWrited == false)
                             Thread.Sleep(1);
 
                         Thread.Sleep(DELAY_INTERVAL);
 
                         isAttributeWrited = false;
-                        bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientAttributeWrite(0, 31, mfxCommandArray.Skip(110 + index * 100).Take(20).ToArray()));
+                        bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientAttributeWrite(0, plenTxAtthandle, commandArray.Skip(110 + index * 100).Take(20).ToArray()));
                         while (isAttributeWrited == false)
                             Thread.Sleep(1);
 
                         Thread.Sleep(DELAY_INTERVAL);
 
-                        serialCommProcessMessage(this, "frame written. [" + (index + 1).ToString() + "/" + ((mfxCommandArray.Length - 30) / 100).ToString() + "]");
+                        serialCommProcessMessage(this, "frame written. [" + (index + 1).ToString() + "/" + ((commandArray.Length - 30) / 100).ToString() + "]");
                         Thread.Sleep(50);
                     }
                     serialCommProcessMessage(this, "【" + sendCommand.Name + "】send Complete. ...");
@@ -375,10 +462,10 @@ namespace BLEMotionInstaller
         /// </summary>
         private void SerialDataReceived(object sender, System.IO.Ports.SerialDataReceivedEventArgs e)
         {
-            //string rcvDataStr = "";
+            int size = serialPort.BytesToRead;
 
-            receiveRawData = new byte[serialPort.BytesToRead];
-            serialPort.Read(receiveRawData, 0, serialPort.BytesToRead);
+            receiveRawData = new byte[size];
+            serialPort.Read(receiveRawData, 0, size);
 
             //bgLibに処理を委譲（受信データに応じたイベントが発生）
             for (int i = 0; i < receiveRawData.Length; i++)

@@ -68,7 +68,7 @@
             this.toolStripStatusLabel2});
             this.statusStrip1.Location = new System.Drawing.Point(0, 390);
             this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(634, 22);
+            this.statusStrip1.Size = new System.Drawing.Size(688, 22);
             this.statusStrip1.TabIndex = 19;
             this.statusStrip1.Text = "statusStrip1";
             // 
@@ -80,7 +80,7 @@
             // toolStripStatusLabelPadding
             // 
             this.toolStripStatusLabelPadding.Name = "toolStripStatusLabelPadding";
-            this.toolStripStatusLabelPadding.Size = new System.Drawing.Size(469, 17);
+            this.toolStripStatusLabelPadding.Size = new System.Drawing.Size(523, 17);
             this.toolStripStatusLabelPadding.Spring = true;
             // 
             // toolStripStatusLabel2
@@ -139,7 +139,7 @@
             // 
             this.button2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.button2.Enabled = false;
-            this.button2.Location = new System.Drawing.Point(433, 35);
+            this.button2.Location = new System.Drawing.Point(487, 35);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(104, 26);
             this.button2.TabIndex = 13;
@@ -156,13 +156,13 @@
             this.textBox1.Multiline = true;
             this.textBox1.Name = "textBox1";
             this.textBox1.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.textBox1.Size = new System.Drawing.Size(444, 262);
+            this.textBox1.Size = new System.Drawing.Size(498, 262);
             this.textBox1.TabIndex = 12;
             // 
             // button1
             // 
             this.button1.Anchor = System.Windows.Forms.AnchorStyles.Top;
-            this.button1.Location = new System.Drawing.Point(277, 35);
+            this.button1.Location = new System.Drawing.Point(304, 35);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(104, 26);
             this.button1.TabIndex = 11;
@@ -195,7 +195,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(634, 412);
+            this.ClientSize = new System.Drawing.Size(688, 412);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.cmbBoxMode);
             this.Controls.Add(this.statusStrip1);

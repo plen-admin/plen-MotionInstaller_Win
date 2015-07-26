@@ -32,25 +32,12 @@ namespace BLEMotionInstaller
     /// </summary>
     public enum SerialState
     {
-        /// <summary>
-        /// 未接続
-        /// </summary>
         NotConnected,
-        /// <summary>
-        /// 接続要求中
-        /// </summary>
         Connecting,
-        /// <summary>
-        /// 接続完了
-        /// </summary>
+        ScanServices,
+        ScanCharacteristics,
         Connected,
-        /// <summary>
-        /// 全データ送信完了（接続切断完了）
-        /// </summary>
         SendCompleted,
-        /// <summary>
-        /// PLEN2でない（接続する必要なし）
-        /// </summary>
         NotPLEN2
     }
 
@@ -101,13 +88,7 @@ namespace BLEMotionInstaller
         /// モーションデータ送信間隔（単位：[ms]）
         /// </summary>
         protected readonly int DELAY_INTERVAL = 10;
-        /// <summary>
-        /// PLEN2キャラスティックUUID
-        /// </summary>
-        protected readonly byte[] PLEN2_TX_CHARACTERISTIC_UUID =
-	        {
-		        0xF9, 0x0E, 0x9C, 0xFE, 0x7E, 0x05, 0x44, 0xA5, 0x9D, 0x75, 0xF1, 0x36, 0x44, 0xD6, 0xF6, 0x45
-	        };
+
         /// <summary>
         /// .NET シリアルポートコンポーネントインスタンス
         /// </summary>
