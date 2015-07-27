@@ -1,4 +1,4 @@
-PLEN - BLE Motion Installer GUI
+PLEN - Motion Installer for Windows
 ================================================================================
 Copyright (c) 2015.
 ---
@@ -7,7 +7,6 @@ Copyright (c) 2015.
 
 Build enviroment.
 ---
-- Windows 7 Professional
 - Windows 8.1 Pro
 - Visual Studio Express 2012 for Windows Desktop
 

@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
+            this.cmbBoxMode = new System.Windows.Forms.ComboBox();
             this.statusStrip1 = new System.Windows.Forms.StatusStrip();
             this.toolStripStatusLabel1 = new System.Windows.Forms.ToolStripStatusLabel();
             this.toolStripStatusLabelPadding = new System.Windows.Forms.ToolStripStatusLabel();
@@ -42,8 +43,22 @@
             this.textBox1 = new System.Windows.Forms.TextBox();
             this.button1 = new System.Windows.Forms.Button();
             this.listBox1 = new System.Windows.Forms.ListBox();
+            this.label4 = new System.Windows.Forms.Label();
             this.statusStrip1.SuspendLayout();
             this.SuspendLayout();
+            // 
+            // cmbBoxMode
+            // 
+            this.cmbBoxMode.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cmbBoxMode.FormattingEnabled = true;
+            this.cmbBoxMode.Items.AddRange(new object[] {
+            "BLE",
+            "USB"});
+            this.cmbBoxMode.Location = new System.Drawing.Point(75, 75);
+            this.cmbBoxMode.Name = "cmbBoxMode";
+            this.cmbBoxMode.Size = new System.Drawing.Size(71, 20);
+            this.cmbBoxMode.TabIndex = 20;
+            this.cmbBoxMode.SelectedIndexChanged += new System.EventHandler(this.cmbBoxMode_SelectedIndexChanged);
             // 
             // statusStrip1
             // 
@@ -53,7 +68,7 @@
             this.toolStripStatusLabel2});
             this.statusStrip1.Location = new System.Drawing.Point(0, 390);
             this.statusStrip1.Name = "statusStrip1";
-            this.statusStrip1.Size = new System.Drawing.Size(634, 22);
+            this.statusStrip1.Size = new System.Drawing.Size(688, 22);
             this.statusStrip1.TabIndex = 19;
             this.statusStrip1.Text = "statusStrip1";
             // 
@@ -65,7 +80,7 @@
             // toolStripStatusLabelPadding
             // 
             this.toolStripStatusLabelPadding.Name = "toolStripStatusLabelPadding";
-            this.toolStripStatusLabelPadding.Size = new System.Drawing.Size(469, 17);
+            this.toolStripStatusLabelPadding.Size = new System.Drawing.Size(523, 17);
             this.toolStripStatusLabelPadding.Spring = true;
             // 
             // toolStripStatusLabel2
@@ -94,7 +109,7 @@
             // 
             // button3
             // 
-            this.button3.Location = new System.Drawing.Point(85, 44);
+            this.button3.Location = new System.Drawing.Point(86, 35);
             this.button3.Name = "button3";
             this.button3.Size = new System.Drawing.Size(159, 23);
             this.button3.TabIndex = 16;
@@ -105,7 +120,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(18, 82);
+            this.label2.Location = new System.Drawing.Point(18, 108);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(78, 12);
             this.label2.TabIndex = 15;
@@ -114,7 +129,7 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(181, 82);
+            this.label1.Location = new System.Drawing.Point(181, 108);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(20, 12);
             this.label1.TabIndex = 14;
@@ -124,7 +139,7 @@
             // 
             this.button2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.button2.Enabled = false;
-            this.button2.Location = new System.Drawing.Point(432, 44);
+            this.button2.Location = new System.Drawing.Point(487, 35);
             this.button2.Name = "button2";
             this.button2.Size = new System.Drawing.Size(104, 26);
             this.button2.TabIndex = 13;
@@ -137,17 +152,17 @@
             this.textBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBox1.Location = new System.Drawing.Point(173, 100);
+            this.textBox1.Location = new System.Drawing.Point(173, 124);
             this.textBox1.Multiline = true;
             this.textBox1.Name = "textBox1";
             this.textBox1.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.textBox1.Size = new System.Drawing.Size(444, 286);
+            this.textBox1.Size = new System.Drawing.Size(498, 262);
             this.textBox1.TabIndex = 12;
             // 
             // button1
             // 
             this.button1.Anchor = System.Windows.Forms.AnchorStyles.Top;
-            this.button1.Location = new System.Drawing.Point(276, 44);
+            this.button1.Location = new System.Drawing.Point(304, 35);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(104, 26);
             this.button1.TabIndex = 11;
@@ -161,17 +176,28 @@
             | System.Windows.Forms.AnchorStyles.Left)));
             this.listBox1.FormattingEnabled = true;
             this.listBox1.ItemHeight = 12;
-            this.listBox1.Location = new System.Drawing.Point(18, 100);
+            this.listBox1.Location = new System.Drawing.Point(18, 124);
             this.listBox1.Name = "listBox1";
             this.listBox1.SelectionMode = System.Windows.Forms.SelectionMode.MultiSimple;
-            this.listBox1.Size = new System.Drawing.Size(128, 280);
+            this.listBox1.Size = new System.Drawing.Size(128, 256);
             this.listBox1.TabIndex = 10;
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(18, 78);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(53, 12);
+            this.label4.TabIndex = 21;
+            this.label4.Text = "転送方法";
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(634, 412);
+            this.ClientSize = new System.Drawing.Size(688, 412);
+            this.Controls.Add(this.label4);
+            this.Controls.Add(this.cmbBoxMode);
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.labelSendCmdCnt);
             this.Controls.Add(this.label3);
@@ -209,6 +235,8 @@
         private System.Windows.Forms.ListBox listBox1;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabelPadding;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusLabel2;
+        private System.Windows.Forms.ComboBox cmbBoxMode;
+        private System.Windows.Forms.Label label4;
 
     }
 }
