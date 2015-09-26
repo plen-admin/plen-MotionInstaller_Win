@@ -61,11 +61,26 @@ namespace PLEN.JSON
                 convertedStr += string.Format("{0,-20}", jsonData.name);
                 convertedStrForDisplay += "[name : " + string.Format("{0,-20}", jsonData.name) + "] ";  
      
-                /*----- システムコマンド「config」（フォーマットが決まり次第実装） -----*/
-                // Paramはid:0，id:1の2つしかない
-                convertedStr += "000000";
-                convertedStrForDisplay += "[config : " + "000000" + "] ";
-
+                /*----- システムコマンド「codes」 -----*/
+                // func..."loop" or "jump"
+                // args...length:3
+                const string DEFAULT_CODES_STR = "000000";
+                string codesStr = DEFAULT_CODES_STR;
+                foreach(var codes in jsonData.codes)
+                {
+                    // loop，jump両方定義されている場合，loopが優先
+                    if(codes.func == "loop")
+                    {
+                        codesStr = "01" + codes.args[0].ToString("x2") + codes.args[1].ToString("x2");
+                    }
+                    else if (codes.func == "jump" && codesStr == DEFAULT_CODES_STR)
+                    {
+                        codesStr = "02" + codes.args[0].ToString("x2") + "00";
+                    }
+                }
+                convertedStr += codesStr;
+                convertedStrForDisplay += "[config : " + codesStr + "]";
+                
                 /*----- システムコマンド「frameNum」 -----*/
                 convertedStr += jsonData.frames.Count.ToString("x2");
                 convertedStrForDisplay += "[frameNum : " + jsonData.frames.Count.ToString("x2") + "] ";

@@ -10,6 +10,9 @@ namespace PLEN.JSON {
 	}
 
 	public class Code {
+        public string func;
+        public List<short> args = new List<short>();
+
 	}
 
 	public class Frame {
