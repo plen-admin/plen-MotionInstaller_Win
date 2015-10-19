@@ -106,7 +106,7 @@ namespace BLEMotionInstaller
 
                     /*---- ここからモーションデータ送信 -----*/
                     /*-- header --*/
-                    serialPort.Write("#IN");
+                    serialPort.Write(">IN");
                     serialPort.Write(commandArray, 0, 30);
 
                     Thread.Sleep(DELAY_INTERVAL);

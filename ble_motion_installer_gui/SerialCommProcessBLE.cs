@@ -161,7 +161,7 @@ namespace BLEMotionInstaller
                     }
                     if (i >= TIMEOUT)
                     {
-                        serialCommProcessMessage(this, "PLEN2との接続が解除できませんでした．BLEドングルを抜き差ししてください．");
+                        serialCommProcessMessage(this, "Disconnect to PLEN2 failed! Please disconnecting BLE dongle.");
                     }
                 }
                 // 今回接続したクライアントのキーをリストから削除
@@ -373,7 +373,7 @@ namespace BLEMotionInstaller
                     /*---- ここからモーションデータ送信 -----*/
                     /*-- header --*/
                     isAttributeWrited = false;
-                    bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientAttributeWrite(0, plenTxAtthandle, System.Text.Encoding.ASCII.GetBytes("#IN")));
+                    bgLib.SendCommand(serialPort, bgLib.BLECommandATTClientAttributeWrite(0, plenTxAtthandle, System.Text.Encoding.ASCII.GetBytes(">IN")));
                     while (isAttributeWrited == false)
                         Thread.Sleep(1);
 
