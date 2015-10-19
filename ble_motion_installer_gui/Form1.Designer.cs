@@ -54,7 +54,7 @@
             this.cmbBoxMode.Items.AddRange(new object[] {
             "BLE",
             "USB"});
-            this.cmbBoxMode.Location = new System.Drawing.Point(75, 75);
+            this.cmbBoxMode.Location = new System.Drawing.Point(116, 75);
             this.cmbBoxMode.Name = "cmbBoxMode";
             this.cmbBoxMode.Size = new System.Drawing.Size(71, 20);
             this.cmbBoxMode.TabIndex = 20;
@@ -80,19 +80,19 @@
             // toolStripStatusLabelPadding
             // 
             this.toolStripStatusLabelPadding.Name = "toolStripStatusLabelPadding";
-            this.toolStripStatusLabelPadding.Size = new System.Drawing.Size(523, 17);
+            this.toolStripStatusLabelPadding.Size = new System.Drawing.Size(396, 17);
             this.toolStripStatusLabelPadding.Spring = true;
             // 
             // toolStripStatusLabel2
             // 
             this.toolStripStatusLabel2.Name = "toolStripStatusLabel2";
-            this.toolStripStatusLabel2.Size = new System.Drawing.Size(150, 17);
-            this.toolStripStatusLabel2.Text = "コマンド送信完了PLEN数：0";
+            this.toolStripStatusLabel2.Size = new System.Drawing.Size(277, 17);
+            this.toolStripStatusLabel2.Text = "Sum of the PLEN that have sent command : 0";
             // 
             // labelSendCmdCnt
             // 
             this.labelSendCmdCnt.AutoSize = true;
-            this.labelSendCmdCnt.Location = new System.Drawing.Point(171, 5);
+            this.labelSendCmdCnt.Location = new System.Drawing.Point(222, 11);
             this.labelSendCmdCnt.Name = "labelSendCmdCnt";
             this.labelSendCmdCnt.Size = new System.Drawing.Size(11, 12);
             this.labelSendCmdCnt.TabIndex = 18;
@@ -101,19 +101,19 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(12, 5);
+            this.label3.Location = new System.Drawing.Point(12, 11);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(153, 12);
+            this.label3.Size = new System.Drawing.Size(210, 12);
             this.label3.TabIndex = 17;
-            this.label3.Text = "送信されるモーションファイル数：";
+            this.label3.Text = "Sum of the motions that will have sent :";
             // 
             // button3
             // 
-            this.button3.Location = new System.Drawing.Point(86, 35);
+            this.button3.Location = new System.Drawing.Point(89, 34);
             this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(159, 23);
+            this.button3.Size = new System.Drawing.Size(110, 26);
             this.button3.TabIndex = 16;
-            this.button3.Text = "モーションファイル読み込み";
+            this.button3.Text = "Load Motion(s)";
             this.button3.UseVisualStyleBackColor = true;
             this.button3.Click += new System.EventHandler(this.button3_Click);
             // 
@@ -139,11 +139,11 @@
             // 
             this.button2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.button2.Enabled = false;
-            this.button2.Location = new System.Drawing.Point(487, 35);
+            this.button2.Location = new System.Drawing.Point(489, 34);
             this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(104, 26);
+            this.button2.Size = new System.Drawing.Size(110, 26);
             this.button2.TabIndex = 13;
-            this.button2.Text = "全通信終了";
+            this.button2.Text = "Abort All Process";
             this.button2.UseVisualStyleBackColor = true;
             this.button2.Click += new System.EventHandler(this.button2_Click);
             // 
@@ -162,11 +162,11 @@
             // button1
             // 
             this.button1.Anchor = System.Windows.Forms.AnchorStyles.Top;
-            this.button1.Location = new System.Drawing.Point(304, 35);
+            this.button1.Location = new System.Drawing.Point(289, 34);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(104, 26);
+            this.button1.Size = new System.Drawing.Size(110, 26);
             this.button1.TabIndex = 11;
-            this.button1.Text = "コマンド送信開始";
+            this.button1.Text = "Install Motion(s)";
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
@@ -185,11 +185,11 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(18, 78);
+            this.label4.Location = new System.Drawing.Point(18, 79);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(53, 12);
+            this.label4.Size = new System.Drawing.Size(95, 12);
             this.label4.TabIndex = 21;
-            this.label4.Text = "転送方法";
+            this.label4.Text = "Transfer methods";
             // 
             // Form1
             // 
@@ -210,7 +210,7 @@
             this.Controls.Add(this.listBox1);
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "Form1";
-            this.Text = "PLEN モーションインストーラ";
+            this.Text = "PLEN - Motion Installer";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
             this.statusStrip1.ResumeLayout(false);

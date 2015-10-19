@@ -150,7 +150,7 @@ namespace BLEMotionInstaller
                     // 選択されたファイルが存在しない
                     if (!System.IO.File.Exists(fileName))
                     {
-                        textBox1.AppendText("error : モーションファイルの検索に失敗しました。" + System.Environment.NewLine);
+                        textBox1.AppendText("error! : Serching motion(s) was failed." + System.Environment.NewLine);
                         return;
 
                     }
@@ -162,7 +162,7 @@ namespace BLEMotionInstaller
                         else if (System.IO.Path.GetExtension(fileName) == ".json")
                             readJsonFile(stream, fileName);
                         else
-                            textBox1.AppendText("error : モーションファイル(.mfx)を選択してください。" + System.Environment.NewLine);
+                            textBox1.AppendText("error! : Please select only motion(*.mfx)." + System.Environment.NewLine);
 
                     }
                 }
@@ -185,25 +185,25 @@ namespace BLEMotionInstaller
             }
             catch (Exception ex)
             {
-                textBox1.AppendText("error : XML解析に失敗しました。選択したモーションファイルが破損している恐れがあります。" + System.Environment.NewLine);
+                textBox1.AppendText("error! : Parsing XML was failed. Selected motion might was broken." + System.Environment.NewLine);
                 textBox1.AppendText("（" + ex.Message + "）");
 
                 return;
             }
 
             /*----- XML→送信データ(string)への変換 -----*/
-            textBox1.AppendText("【" + fileName + "】モーションファイルを送信データとして変換します..." + System.Environment.NewLine);
+            textBox1.AppendText("【" + fileName + "】The motion is converting to command-line..." + System.Environment.NewLine);
 
             PLEN.MFX.BLEMfxCommand bleMfx = new PLEN.MFX.BLEMfxCommand(tagMfx);
             if (bleMfx.convertCommand() == false)
             {
-                textBox1.AppendText("送信データの変換に失敗しました。" + System.Environment.NewLine);
+                textBox1.AppendText("error! : Converting command-line was failed." + System.Environment.NewLine);
                 return;
             }
             // 送信データに変換できたモーションファイルをリストに送信リストに追加
             sendCommandList.Add(bleMfx);
             //textBox1.AppendText(bleMfx.strConvertedMfxForDisplay + System.Environment.NewLine);
-            textBox1.AppendText(string.Format("***** モーションファイルを送信データに変換しました。（{0}バイト） *****", bleMfx.convertedStr.Length) + System.Environment.NewLine + System.Environment.NewLine);
+            textBox1.AppendText(string.Format("***** The motion has converted. ({0} bytes) *****", bleMfx.convertedStr.Length) + System.Environment.NewLine + System.Environment.NewLine);
 
             // 送信モーションファイル数の画面表示
             labelSendCmdCnt.Text = sendCommandList.Count.ToString();    
@@ -225,25 +225,25 @@ namespace BLEMotionInstaller
             }
             catch (Exception ex)
             {
-                textBox1.AppendText("error : JSONファイルの解析に失敗しました。選択したモーションファイルが破損している恐れがあります。" + System.Environment.NewLine);
+                textBox1.AppendText("error! : Parsing JSON was failed. Selected motion might was broken." + System.Environment.NewLine);
                 textBox1.AppendText("（" + ex.Message + "）");
 
                 return;
             }
 
             /*----- JSON→送信データ(string)への変換 -----*/
-            textBox1.AppendText("【" + fileName + "】モーションファイルを送信データとして変換します..." + System.Environment.NewLine);
+            textBox1.AppendText("【" + fileName + "】The motion is converting to command-line..." + System.Environment.NewLine);
 
             PLEN.JSON.BLEJsonCommand bleJson = new PLEN.JSON.BLEJsonCommand(jsonData);
             if (bleJson.convertCommand() == false)
             {
-                textBox1.AppendText("送信データの変換に失敗しました。" + System.Environment.NewLine);
+                textBox1.AppendText("error! : Converting command-line was failed." + System.Environment.NewLine);
                 return;
             }
             // 送信データに変換できたモーションファイルをリストに送信リストに追加
             sendCommandList.Add(bleJson);
 //            textBox1.AppendText(bleJson.convertedStrForDisplay);
-            textBox1.AppendText(string.Format("***** モーションファイルを送信データに変換しました。（{0}バイト） *****", bleJson.convertedStr.Length) + System.Environment.NewLine + System.Environment.NewLine);
+            textBox1.AppendText(string.Format("***** The motion has converted. ({0} bytes) *****", bleJson.convertedStr.Length) + System.Environment.NewLine + System.Environment.NewLine);
             
             // 送信モーションファイル数の画面表示
             labelSendCmdCnt.Text = sendCommandList.Count.ToString();
@@ -259,12 +259,12 @@ namespace BLEMotionInstaller
             if (listBox1.SelectedItems.Count >= 1)
             {
                 textBox1.Clear();
-                textBox1.AppendText("***** 通信を開始します..... *****" + System.Environment.NewLine);
+                textBox1.AppendText("***** Connection starting...  *****" + System.Environment.NewLine);
 
                 // 送信すべきモーションファイルが一つも読み込まれていないとき
                 if (sendCommandList.Count <= 0)
                 {
-                    textBox1.AppendText("error : 送信するモーションファイルが読み込まれていません。" + System.Environment.NewLine);
+                    textBox1.AppendText("error! : Motion that will be sending had not loaded." + System.Environment.NewLine);
                     return;
                 }
 
@@ -313,7 +313,7 @@ namespace BLEMotionInstaller
                     bleConnectingThread.Name = "BLEConnectingThread";
                     bleConnectingThread.Start();
 
-                    toolStripStatusLabel2.Text = "コマンド送信完了PLEN数：0";
+                    toolStripStatusLabel2.Text = "Sum of the PLEN that have sent command : 0";
                     commandSendedPLENCnt = 0;
                     button1.Enabled = false;
                     button2.Enabled = true;
@@ -321,7 +321,7 @@ namespace BLEMotionInstaller
                 // 例外が発生→すべてのスレッドを停止させる
                 catch (Exception ex)
                 {
-                    textBox1.AppendText("エラーが発生しました． " + System.Environment.NewLine + "massage  [ " + ex.Message + " ]" + System.Environment.NewLine);
+                    textBox1.AppendText("An error has raised." + System.Environment.NewLine + "massage  [ " + ex.Message + " ]" + System.Environment.NewLine);
                     foreach (string key in threadDict.Keys)
                     {
                         threadDict[key].Abort();
@@ -378,7 +378,7 @@ namespace BLEMotionInstaller
             ThreadSafeDelegate(delegate
             {
                 //textBox1.AppendText(" ***** [" + args.PortName + "] Finished *****" + System.Environment.NewLine);
-                toolStripStatusLabel2.Text = "コマンド送信完了PLEN数：" + commandSendedPLENCnt.ToString();
+                toolStripStatusLabel2.Text = "Sum of the PLEN that have sent command : " + commandSendedPLENCnt.ToString();
             });
 
             // 通知元のスレッドを終了させ，テーブルから削除（ただし自動継続モードでないとき）
@@ -400,7 +400,7 @@ namespace BLEMotionInstaller
                         bleConnectingThread.Abort();
                         bleConnectingThread.Join();
                     }
-                    textBox1.AppendText(System.Environment.NewLine + "***** すべてのモーションデータの送信が完了しました。*****" + System.Environment.NewLine + System.Environment.NewLine);
+                    textBox1.AppendText(System.Environment.NewLine + "***** Sending all motion have completed. *****" + System.Environment.NewLine + System.Environment.NewLine);
                 }
             });
         }
@@ -446,7 +446,7 @@ namespace BLEMotionInstaller
             bleConnectingThread.Join();
 
             threadDict.Clear();
-            MessageBox.Show("全通信を終了しました。", "通信を終了しました", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            MessageBox.Show("All processes has aborted.", "The process has aborted.", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             textBox1.AppendText("***** All Communication Stopped *****" + System.Environment.NewLine);
 
             button1.Enabled = true;
